@@ -1,0 +1,24 @@
+var layoutInfo = {
+    startTab: "main",
+    startNavTab: "tree-tab",
+	showTree: true,
+
+    treeLayout: ""
+
+    
+}
+
+
+// A "ghost" layer which offsets other layers in the tree
+addNode("blank", {
+    layerShown: "ghost",
+}, 
+)
+
+
+addLayer("tree-tab", {
+    tabFormat: ["blank",
+                ["display-text", function() {return "50/50 HP"}]],
+    previousTab: "",
+    leftTab: true,
+})
