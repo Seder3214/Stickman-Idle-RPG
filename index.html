@@ -45,8 +45,10 @@
 		<div v-if="false" id="loadingSection" class="fullWidth">
 			<h1>Loading... (If this takes too long it means there was a serious error!)←</h1>
 		</div>
-		<button class="backButton" onclick="toggleOpt('menuShown')"v-if="options.forceOneTab==false&&tmp.other.screenWidth>=1024" v-bind:style="options.menuShown==true?{'left':'56.5%'}:{'left':'96.5%'}">{{options.menuShown==true?'>':'<'}}</button>	
-		<div v-bind:style="options.menuShown==true&&tmp.other.screenWidth>=1024?{'left':'60%'}:{'left':'100%'}" class="vl" v-if="player.navTab !== 'none' && tmp.other.splitScreen && player.tab!='none' && !(tmp.gameEnded && !player.keepGoing)">
+		<button class="backButton" style="background: url('resources/button_inventory.png'); background-repeat: no-repeat; background-position: 50% 50%;" onclick="setSubtab('inv')" ></button>	
+		<button class="backButton" style="background: url('resources/button_empty.png'); background-repeat: no-repeat; background-position: 50% 50%;top:70% "onclick="setSubtab('player')" >P</button>	
+		<button class="backButton"style="background: url('resources/button_empty.png'); background-repeat: no-repeat; background-position: 50% 50%;top:60%" onclick="setSubtab('forge')">F</button>	
+		<div v-bind:style="" class="vl" v-if="player.navTab !== 'none' && tmp.other.splitScreen && player.tab!='none' && !(tmp.gameEnded && !player.keepGoing)">
 		</div>
 		<div v-if="(tmp.gameEnded && !player.keepGoing)" class="fullWidth">
 			<br>
@@ -88,7 +90,7 @@
 			</div>
 		</div>
 		
-		<div v-if="!(tmp.gameEnded && !player.keepGoing) && (player.tab === 'none' || tmp.other.splitScreen)" id="treeTab"  onscroll="resizeCanvas()" 
+		<div v-if="!(tmp.gameEnded && !player.keepGoing) && (player.tab === 'none' || tmp.other.splitScreen)" id="treeTab" v-bind:style="" onscroll="resizeCanvas()"
 			v-bind:class="{ fullWidth: (player.tab == 'none' || player.navTab == 'none'), col: (player.tab !== 'none' && player.navTab !== 'none'), left: (player.tab !== 'none' && player.navTab !== 'none')}">
 			<br><br><br><br>
 			<overlay-head id="fakeHead" style="visibility: hidden;">
@@ -112,7 +114,7 @@
 					<particle :data="particle" :index="index" v-bind:key="'b' + particle.id"></particle>
 				</div>
 		</div>
-		<div v-bind:style="tmp.other.screenWidth<=1024?{'left':'0%'}:(options.menuShown==true?{'left':'56%','transition': 'all 0.5s'}:{'left':'100%',	'transition': 'all 0.5s'})" v-if="player.navTab !== 'none' && player.tab !== 'none' && !(tmp.gameEnded && !player.keepGoing)" onscroll="resizeCanvas()" v-bind:class="{ fullWidth: player.navTab == 'none' || !tmp.other.splitScreen || !readData(layoutInfo.showTree), col: player.navTab != 'none', right: player.navTab != 'none', fast: true, tab: true}">
+		<div v-bind:style="{'left':'50%'}" v-if="player.navTab !== 'none' && player.tab !== 'none' && !(tmp.gameEnded && !player.keepGoing)" onscroll="resizeCanvas()" v-bind:class="{ fullWidth: player.navTab == 'none' || !tmp.other.splitScreen || !readData(layoutInfo.showTree), col: player.navTab != 'none', right: player.navTab != 'none', fast: true, tab: true}">
 			
 			<div v-for="layer in LAYERS">
 				<div v-if="player.tab==layer">

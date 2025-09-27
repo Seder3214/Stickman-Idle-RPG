@@ -1,3 +1,4 @@
+//Функция для вывода редкости
 function getRarityName(rarity) {
     switch(rarity) {
         case 1: return '(Обычный)'; break
@@ -11,6 +12,35 @@ function getRarityName(rarity) {
         case 8: return '(Секретный)'; break
     }
 }
+//Функция для основных кнопок
+function setSubtab(id) {
+player.tab = 'main'
+player.subtabs[player.tab].mainTabs = 'Inventory'
+    switch(id) {
+        case 'inv': 
+        player.tab = 'main';
+        player.subtabs[player.tab].mainTabs = 'Inventory';
+        break
+        case 'player':
+        player.tab = 'main';
+        player.subtabs[player.tab].mainTabs = 'Player';
+        break
+        case 'forge':
+        player.tab = 'main';
+        player.subtabs[player.tab].mainTabs = 'Forge';
+        break
+        case 'prestige':
+        player.tab = 'main';
+        player.subtabs[player.tab].mainTabs = 'Prestige';
+        break
+        case 'shop': return '(Легендарный)'; break
+        case 6: return '(Мифический)'; break
+        case 7: return '(Экзотический)'; break
+        case 8: return '(Уникальный)'; break
+        case 8: return '(Секретный)'; break
+    }
+}
+//Функция для вывода названия оружия
 function getEquipTypeName(type) {
     switch(type) {
         case 'sword': return '[Меч - Осн. оружие - Воин]'; break
@@ -25,6 +55,7 @@ function getEquipTypeName(type) {
         case 'boots': return '[Ботинки]'; break
     }
 }
+//Функция для вывода характеристик оружия
 function getStatName(stat, value) {
     switch(stat) {
         case 'attack': return `Атака: +${format(value,0)}`; break
@@ -36,6 +67,7 @@ function getStatName(stat, value) {
         case 'luck': return `Удача: +${format(value,0)}`; break
     }
 }
+//Пул лута обычной редкости
 function getCommonWeapon() {
     let className = player.main.character.class
     let chosenPool = []
@@ -63,7 +95,7 @@ function getCommonWeapon() {
     chosenPool.push(fullPool[4])
     return chosenPool
 }
-
+//Основная часть игры
 addLayer("main", {
     name: "game", // This is optional, only used in a few places, If absent it just uses the layer id.
     symbol: "G", // This appears on the layer's node. Default is the id with the first letter capitalized
@@ -72,6 +104,7 @@ addLayer("main", {
         unlocked: true,
         points: new Decimal(0),
 		gold: new Decimal(0),
+        checkToggleId: '',
         equipment: {
             helmet: {},
             chestplate: {},
@@ -82,7 +115,7 @@ addLayer("main", {
             ring: {},
             amulet: {},
             necklace: {},
-
+            ring_2: {},
         },
         character: {
             class: 'none',
@@ -92,14 +125,16 @@ addLayer("main", {
             agility: new Decimal(0),
             intelligence: new Decimal(0),
             luck: new Decimal(0),
+            crit: new Decimal(0),
+            crit_chance: new Decimal(0),
         },
     }},
-    color: "white",// Can be a function that takes requirement increases into account// Name of prestige currency
-// Name of resource prestige is based on
-    baseAmount() {return player.points}, // Get the current amount of baseResource
-    type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
+    color: "white",
+    baseAmount() {return player.points}, 
+    type: "normal", 
+    //Инвентарь
     grid: {
-        rows: 6, // If these are dynamic make sure to have a max value as well!
+        rows: 6, 
         cols: 6,
         getStartData(id) {
             return {item_type: 'none', item_name:'Debug', level: 0,rarity:0}
@@ -116,11 +151,12 @@ addLayer("main", {
         getDisplay(data, id) {
             return data.item_name
         },
+        //Функция для текста в всплывалющем тултипе
         getTooltip(data,id) {
             let table = ''
             let statsTable = ''
             if (data.rarity>0) statsTable = '|'
-            if (data.rarity>0) table = `${getEquipTypeName(data.item_type)}<h4> ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_type)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
@@ -156,6 +192,7 @@ addLayer("main", {
     hotkeys: [
         {key: "p", description: "P: Reset for prestige points", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
     ],
+    //Вкладки
         tabFormat: {
             "Player": {
                 content:[
@@ -168,8 +205,8 @@ addLayer("main", {
             "Inventory": {
                 content:[
                 ["column", [
-                ["blank",['60px','300px']],
-                "blank",
+                
+                ["blank",['60px','200px']],
                 "blank",
                 "grid",
                 "blank",
