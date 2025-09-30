@@ -99,6 +99,10 @@ function getStatName(stat, value) {
         case 'poison_attack': return `Отравление: +${format(value,0)}`; break
         case 'defense': return `Защита: +${format(value,0)}`; break
         case 'luck': return `Удача: +${format(value,0)}`; break
+        case 'add_strength': return `Сила: +${format(value,0)}`; break
+        case 'add_vitality': return `Живучесть: +${format(value,0)}`; break
+        case 'add_agility': return `Ловкость: +${format(value,0)}`; break
+        case 'add_intelligence': return `Мудрость: +${format(value,0)}`; break
     }
 }
 //Пул лута обычной редкости
@@ -179,8 +183,8 @@ addLayer("main", {
     clickables: {
         11: {
             type() {return 'primary_weapon'},
-        display() {
-            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+               display() {
+            return player.main.equipment[this.type()].item_name?`<h5>${player.main.equipment[this.type()].item_name}</h5>`:""
         },
         canClick(){
             if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
@@ -195,14 +199,22 @@ addLayer("main", {
             tooltip() {
                 let data = player.main.equipment[this.type()]
             let table = ''
+            let stats = []
             let statsTable = ''
-            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) statsTable = ''
             if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+                if (data[i]>0&&i!='rarity') {
+                    stats.push([i])
+                    if (stats.length%2!=0) statsTable +=`| `
+                    statsTable+=` ${getStatName(i, data[i])} `
+                    if (stats.length%2!=0) statsTable +=` |`
+                    
+                    if (stats.length%2==0) statsTable+=' |<br>'
+                }
             }
             return table+statsTable
         },
@@ -242,8 +254,8 @@ addLayer("main", {
         },
         12: {
             type() {return 'secondary_weapon'},
-        display() {
-            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+               display() {
+            return player.main.equipment[this.type()].item_name?`<h5>${player.main.equipment[this.type()].item_name}</h5>`:""
         },
         canClick(){
             if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
@@ -258,14 +270,22 @@ addLayer("main", {
             tooltip() {
                 let data = player.main.equipment[this.type()]
             let table = ''
+            let stats = []
             let statsTable = ''
-            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) statsTable = ''
             if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+                if (data[i]>0&&i!='rarity') {
+                    stats.push([i])
+                    if (stats.length%2!=0) statsTable +=`| `
+                    statsTable+=` ${getStatName(i, data[i])} `
+                    if (stats.length%2!=0) statsTable +=` |`
+                    
+                    if (stats.length%2==0) statsTable+=' |<br>'
+                }
             }
             return table+statsTable
         },
@@ -305,8 +325,8 @@ addLayer("main", {
         },
         13: {
             type() {return 'helmet'},
-        display() {
-            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+               display() {
+            return player.main.equipment[this.type()].item_name?`<h5>${player.main.equipment[this.type()].item_name}</h5>`:""
         },
         canClick(){
             if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
@@ -321,14 +341,22 @@ addLayer("main", {
             tooltip() {
                 let data = player.main.equipment[this.type()]
             let table = ''
+            let stats = []
             let statsTable = ''
-            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) statsTable = ''
             if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+                if (data[i]>0&&i!='rarity') {
+                    stats.push([i])
+                    if (stats.length%2!=0) statsTable +=`| `
+                    statsTable+=` ${getStatName(i, data[i])} `
+                    if (stats.length%2!=0) statsTable +=` |`
+                    
+                    if (stats.length%2==0) statsTable+=' |<br>'
+                }
             }
             return table+statsTable
         },
@@ -368,8 +396,8 @@ addLayer("main", {
         },
         14: {
             type() {return 'chestplate'},
-        display() {
-            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+               display() {
+            return player.main.equipment[this.type()].item_name?`<h5>${player.main.equipment[this.type()].item_name}</h5>`:""
         },
         canClick(){
             if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
@@ -384,14 +412,22 @@ addLayer("main", {
             tooltip() {
                 let data = player.main.equipment[this.type()]
             let table = ''
+            let stats = []
             let statsTable = ''
-            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) statsTable = ''
             if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+                if (data[i]>0&&i!='rarity') {
+                    stats.push([i])
+                    if (stats.length%2!=0) statsTable +=`| `
+                    statsTable+=` ${getStatName(i, data[i])} `
+                    if (stats.length%2!=0) statsTable +=` |`
+                    
+                    if (stats.length%2==0) statsTable+=' |<br>'
+                }
             }
             return table+statsTable
         },
@@ -431,8 +467,8 @@ addLayer("main", {
         },
         15: {
             type() {return 'leggings'},
-        display() {
-            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+               display() {
+            return player.main.equipment[this.type()].item_name?`<h5>${player.main.equipment[this.type()].item_name}</h5>`:""
         },
         canClick(){
             if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
@@ -447,14 +483,22 @@ addLayer("main", {
             tooltip() {
                 let data = player.main.equipment[this.type()]
             let table = ''
+            let stats = []
             let statsTable = ''
-            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) statsTable = ''
             if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+                if (data[i]>0&&i!='rarity') {
+                    stats.push([i])
+                    if (stats.length%2!=0) statsTable +=`| `
+                    statsTable+=` ${getStatName(i, data[i])} `
+                    if (stats.length%2!=0) statsTable +=` |`
+                    
+                    if (stats.length%2==0) statsTable+=' |<br>'
+                }
             }
             return table+statsTable
         },
@@ -494,8 +538,8 @@ addLayer("main", {
         },
         16: {
             type() {return 'boots'},
-        display() {
-            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+               display() {
+            return player.main.equipment[this.type()].item_name?`<h5>${player.main.equipment[this.type()].item_name}</h5>`:""
         },
         canClick(){
             if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
@@ -510,14 +554,22 @@ addLayer("main", {
             tooltip() {
                 let data = player.main.equipment[this.type()]
             let table = ''
+            let stats = []
             let statsTable = ''
-            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) statsTable = ''
             if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+                if (data[i]>0&&i!='rarity') {
+                    stats.push([i])
+                    if (stats.length%2!=0) statsTable +=`| `
+                    statsTable+=` ${getStatName(i, data[i])} `
+                    if (stats.length%2!=0) statsTable +=` |`
+                    
+                    if (stats.length%2==0) statsTable+=' |<br>'
+                }
             }
             return table+statsTable
         },
@@ -557,8 +609,8 @@ addLayer("main", {
         },
         17: {
             type() {return 'ring_1'},
-        display() {
-            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+               display() {
+            return player.main.equipment[this.type()].item_name?`<h5>${player.main.equipment[this.type()].item_name}</h5>`:""
         },
         canClick(){
             if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type=='ring'))
@@ -573,14 +625,22 @@ addLayer("main", {
             tooltip() {
                 let data = player.main.equipment[this.type()]
             let table = ''
+            let stats = []
             let statsTable = ''
-            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) statsTable = ''
             if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+                if (data[i]>0&&i!='rarity') {
+                    stats.push([i])
+                    if (stats.length%2!=0) statsTable +=`| `
+                    statsTable+=` ${getStatName(i, data[i])} `
+                    if (stats.length%2!=0) statsTable +=` |`
+                    
+                    if (stats.length%2==0) statsTable+=' |<br>'
+                }
             }
             return table+statsTable
         },
@@ -620,12 +680,12 @@ addLayer("main", {
         },
         18: {
             type() {return 'ring_2'},
-        display() {
-            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+               display() {
+            return player.main.equipment[this.type()].item_name?`<h5>${player.main.equipment[this.type()].item_name}</h5>`:""
         },
         canClick(){
-            if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
-            else if (player.main.equipment[this.type()].item_name&&player.main.checkToggleGridId) return (getGridData('main',player.main.checkToggleGridId).item_type==this.type())
+            if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type=='ring'))
+            else if (player.main.equipment[this.type()].item_name&&player.main.checkToggleGridId) return (getGridData('main',player.main.checkToggleGridId).item_type=='ring')
             else return true
         },
         onClick() {
@@ -636,14 +696,22 @@ addLayer("main", {
             tooltip() {
                 let data = player.main.equipment[this.type()]
             let table = ''
+            let stats = []
             let statsTable = ''
-            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) statsTable = ''
             if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+                if (data[i]>0&&i!='rarity') {
+                    stats.push([i])
+                    if (stats.length%2!=0) statsTable +=`| `
+                    statsTable+=` ${getStatName(i, data[i])} `
+                    if (stats.length%2!=0) statsTable +=` |`
+                    
+                    if (stats.length%2==0) statsTable+=' |<br>'
+                }
             }
             return table+statsTable
         },
@@ -683,8 +751,8 @@ addLayer("main", {
         },
         19: {
             type() {return 'necklace'},
-        display() {
-            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+               display() {
+            return player.main.equipment[this.type()].item_name?`<h5>${player.main.equipment[this.type()].item_name}</h5>`:""
         },
         canClick(){
             if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
@@ -699,14 +767,22 @@ addLayer("main", {
             tooltip() {
                 let data = player.main.equipment[this.type()]
             let table = ''
+            let stats = []
             let statsTable = ''
-            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) statsTable = ''
             if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+                if (data[i]>0&&i!='rarity') {
+                    stats.push([i])
+                    if (stats.length%2!=0) statsTable +=`| `
+                    statsTable+=` ${getStatName(i, data[i])} `
+                    if (stats.length%2!=0) statsTable +=` |`
+                    
+                    if (stats.length%2==0) statsTable+=' |<br>'
+                }
             }
             return table+statsTable
         },
@@ -805,13 +881,23 @@ addLayer("main", {
         getTooltip(data,id) {
             let table = ''
             let statsTable = ''
-            if (data.rarity>0) statsTable = '|'
+            let stats = []
+            let k = 0
+            let j = 0
+            if (data.rarity>0) statsTable = ''
             if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+                if (data[i]>0&&i!='rarity') {
+                    stats.push([i])
+                    if (stats.length%2!=0) statsTable +=`| `
+                    statsTable+=` ${getStatName(i, data[i])} `
+                    if (stats.length%2!=0) statsTable +=` |`
+                    
+                    if (stats.length%2==0) statsTable+=' |<br>'
+                }
             }
             return table+statsTable
         },
