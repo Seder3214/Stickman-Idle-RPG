@@ -183,7 +183,9 @@ addLayer("main", {
             return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
         },
         canClick(){
-            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type())||player.main.equipment[this.type()].item_name)
+            if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
+            else if (player.main.equipment[this.type()].item_name&&player.main.checkToggleGridId) return (getGridData('main',player.main.checkToggleGridId).item_type==this.type())
+            else return true
         },
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
@@ -244,7 +246,9 @@ addLayer("main", {
             return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
         },
         canClick(){
-            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type())||player.main.equipment[this.type()].item_name)
+            if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
+            else if (player.main.equipment[this.type()].item_name&&player.main.checkToggleGridId) return (getGridData('main',player.main.checkToggleGridId).item_type==this.type())
+            else return true
         },
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
@@ -305,7 +309,9 @@ addLayer("main", {
             return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
         },
         canClick(){
-            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type())||player.main.equipment[this.type()].item_name)
+            if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
+            else if (player.main.equipment[this.type()].item_name&&player.main.checkToggleGridId) return (getGridData('main',player.main.checkToggleGridId).item_type==this.type())
+            else return true
         },
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
@@ -366,7 +372,9 @@ addLayer("main", {
             return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
         },
         canClick(){
-            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type())||player.main.equipment[this.type()].item_name)
+            if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
+            else if (player.main.equipment[this.type()].item_name&&player.main.checkToggleGridId) return (getGridData('main',player.main.checkToggleGridId).item_type==this.type())
+            else return true
         },
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
@@ -427,7 +435,9 @@ addLayer("main", {
             return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
         },
         canClick(){
-            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type())||player.main.equipment[this.type()].item_name)
+            if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
+            else if (player.main.equipment[this.type()].item_name&&player.main.checkToggleGridId) return (getGridData('main',player.main.checkToggleGridId).item_type==this.type())
+            else return true
         },
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
@@ -488,7 +498,9 @@ addLayer("main", {
             return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
         },
         canClick(){
-            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type())||player.main.equipment[this.type()].item_name)
+            if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
+            else if (player.main.equipment[this.type()].item_name&&player.main.checkToggleGridId) return (getGridData('main',player.main.checkToggleGridId).item_type==this.type())
+            else return true
         },
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
@@ -549,7 +561,9 @@ addLayer("main", {
             return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
         },
         canClick(){
-            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type=='ring')||player.main.equipment[this.type()].item_name)
+            if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type=='ring'))
+            else if (player.main.equipment[this.type()].item_name&&player.main.checkToggleGridId) return (getGridData('main',player.main.checkToggleGridId).item_type=='ring')
+            else return true
         },
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
@@ -610,7 +624,9 @@ addLayer("main", {
             return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
         },
         canClick(){
-            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type=='ring')||player.main.equipment[this.type()].item_name)
+            if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
+            else if (player.main.equipment[this.type()].item_name&&player.main.checkToggleGridId) return (getGridData('main',player.main.checkToggleGridId).item_type==this.type())
+            else return true
         },
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
@@ -671,7 +687,9 @@ addLayer("main", {
             return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
         },
         canClick(){
-            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type())||player.main.equipment[this.type()].item_name)
+            if (!player.main.equipment[this.type()].item_name) return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type()))
+            else if (player.main.equipment[this.type()].item_name&&player.main.checkToggleGridId) return (getGridData('main',player.main.checkToggleGridId).item_type==this.type())
+            else return true
         },
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
