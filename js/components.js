@@ -342,7 +342,7 @@ function loadVue() {
 			<span v-if= "tmp[layer].clickables[data].title"><h2 v-html="tmp[layer].clickables[data].title"></h2><br></span>
 			<span v-bind:style="{'white-space': 'pre-line'}" v-html="run(layers[layer].clickables[data].display, layers[layer].clickables[data])"></span>
 			<node-mark :layer='layer' :data='tmp[layer].clickables[data].marked'></node-mark>
-			<tooltip v-if="tmp[layer].clickables[data].tooltip" :text="tmp[layer].clickables[data].tooltip"></tooltip>
+			<tooltip v-if="tmp[layer].clickables[data].tooltip" v-bind:style='tmp[layer].clickables[data].tooltipStyle' :text="tmp[layer].clickables[data].tooltip"></tooltip>
 
 		</button>
 		`,

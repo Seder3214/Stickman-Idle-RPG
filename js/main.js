@@ -12,6 +12,38 @@ function getRarityName(rarity) {
         case 8: return '(Секретный)'; break
     }
 }
+function toggleGridAndSlot(type) {
+            if (player.main.checkToggleGridId!=''&&player.main.checkToggleSlotId!='') {
+                console.log(getGridData('main',player.main.checkToggleGridId))
+                let slotData = player.main.equipment[type]
+                player.main.equipment[type] = getGridData('main',player.main.checkToggleGridId)
+                player.main.grid[player.main.checkToggleGridId] = slotData
+                player.main.checkToggleGridId=''
+                player.main.checkToggleGridId_2=''
+                player.main.checkToggleSlotId=''
+            }
+            else if (player.main.checkToggleSlotId!=''&&player.main.checkToggleGridId!=''&&player.main.equipment[type].item_name!='') {
+                let slotData = player.main.equipment[type]
+                let gridable=player.main.grid[player.main.checkToggleGridId]
+                player.main.grid[player.main.checkToggleGridId] = slotData
+                player.main.equipment[type] = gridable
+                player.main.checkToggleGridId=''
+                player.main.checkToggleGridId_2=''
+                player.main.checkToggleSlotId=''
+            }
+}
+function toggleGrids() {
+    if (player.main.checkToggleGridId!=''&&player.main.checkToggleGridId_2!='') {
+        let grid_1 = getGridData('main', player.main.checkToggleGridId)
+        let grid_2 = getGridData('main', player.main.checkToggleGridId_2)
+        player.main.grid[player.main.checkToggleGridId] = grid_2
+        player.main.grid[player.main.checkToggleGridId_2] = grid_1
+        if (player.main.grid[player.main.checkToggleGridId]!=grid_1){
+            player.main.checkToggleGridId=''
+            player.main.checkToggleGridId_2=''
+        }
+    }
+}
 //Функция для основных кнопок
 function setSubtab(id) {
 player.tab = 'main'
@@ -53,6 +85,8 @@ function getEquipTypeName(type) {
         case 'chestplate': return '[Нагрудник]'; break
         case 'leggings': return '[Поножи]'; break
         case 'boots': return '[Ботинки]'; break
+        case 'ring': return '[Кольцо]'; break
+        case 'necklace': return '[Ожерелье]'; break
     }
 }
 //Функция для вывода характеристик оружия
@@ -72,16 +106,24 @@ function getCommonWeapon() {
     let className = player.main.character.class
     let chosenPool = []
     let fullPool = [
-        {item_type: 'sword', item_name:'Ржавый меч', level: 0, attack:12, speed:0.9, strength_scale:"E", agility_scale:"F", rarity:1},
-        {item_type: 'dagger', item_name:'Потрескавшийся короткий меч', level: 0, attack:4,speed:1.25, strength_scale:"F", agility_scale:"E", rarity:1},
-        {item_type: 'bow', item_name:'Рассохшийся лук', level: 0, attack:9,speed:1.1, strength_scale:"F", agility_scale:"E", rarity:1},
-        {item_type: 'staff', item_name:'Простой посох', level: 0, attack:0, speed:1.3, fire_attack:4.5, intelligence_scale:"E", rarity:1},
-        {item_type: 'shield', item_name:'Дряхлый щит', level: 0, defense:6, vitality_scale:"E", strength_scale:"F", rarity:1},
-        {item_type: 'grimoire', item_name:'Старинный Гримуар', level: 0, attack:0, intelligence_scale:"E", rarity:1},
+        {item_type: 'primary_weapon', item_subtype: 'sword', item_name:'Ржавый меч', level: 0, attack:12, speed:0.9, strength_scale:"E", agility_scale:"F", rarity:1},
+        {item_type: 'secondary_weapon',item_subtype: 'dagger', item_name:'Потрескавшийся короткий меч', level: 0, attack:4,speed:1.25, strength_scale:"F", agility_scale:"E", rarity:1},
+        {item_type: 'primary_weapon', item_name:'Рассохшийся лук', item_subtype: 'bow',level: 0, attack:9,speed:1.1, strength_scale:"F", agility_scale:"E", rarity:1},
+        {item_type: 'primary_weapon', item_name:'Простой посох', item_subtype: 'staff', level: 0, attack:0, speed:1.3, fire_attack:4.5, intelligence_scale:"E", rarity:1},
+        {item_type: 'secondary_weapon', item_name:'Дряхлый щит', item_subtype: 'shield',level: 0, defense:6, vitality_scale:"E", strength_scale:"F", rarity:1},
+        {item_type: 'secondary_weapon', item_name:'Старинный Гримуар',item_subtype: 'grimoire', level: 0, attack:0, intelligence_scale:"E", rarity:1},
+        {item_type: 'chestplate',item_subtype: 'chestplate', item_name:'Поржавевшый Нагрудник', level: 0, defense: 9, attack:0, vitality_scale:"F", strength_scale:"F", agility_scale:"F", rarity:1},
+        {item_type: 'helmet',item_subtype: 'helmet', item_name:'Поржавевший Шлем', level: 0, defense:4, vitality_scale:"F", strength_scale:"F", agility_scale:"F", rarity:1},
+        {item_type: 'leggings', item_subtype: 'leggings',item_name:'Поржавевшие Поножи', level: 0, defense:6, vitality_scale:"F", strength_scale:"F", agility_scale:"F", rarity:1},
+        {item_type: 'boots',item_subtype: 'boots', item_name:'Кожаные Ботинки', level: 0, defense:3, vitality_scale:"F", strength_scale:"F", agility_scale:"F", rarity:1},
+        {item_type: 'ring', item_subtype: 'ring',item_name:'Железное Кольцо', level: 0, add_strength:2, rarity:1},
+        {item_type: 'ring', item_subtype: 'ring',item_name:'Кольцо с магическим камнем', level: 0, add_intelligence:3, rarity:1},
+        {item_type: 'ring',item_subtype: 'ring', item_name:'Кольцо с Четырёхлистным клевером', level: 0, luck:3, rarity:1},
+        {item_type: 'necklace', item_subtype: 'necklace',item_name:'Серебрянная цепочка', level: 0, add_strength:1, add_vitality: 1, add_agility:1, add_intelligence:1, rarity:1},
+        {item_type: 'necklace', item_subtype: 'necklace',item_name:'Позолоченная печать', level: 0, luck:2, rarity:1},
     ]
     if (className=='warrior') {
-        chosenPool=fullPool[0,4]
-        console.log(`${chosenPool}`)
+        for (i=0;i<fullPool.length;i++) if(i<=0||i>=6) chosenPool.push(fullPool[i])
     }
     if (className=='archer') {
         chosenPool=fullPool[1,2]
@@ -91,8 +133,7 @@ function getCommonWeapon() {
         chosenPool=fullPool[3,4]
         console.log(`${chosenPool}`)
     }
-    chosenPool.push(fullPool[0])
-    chosenPool.push(fullPool[4])
+        for (i=0;i<fullPool.length;i++) if(i<=0||i>=6||i==4) chosenPool.push(fullPool[i])
     return chosenPool
 }
 //Основная часть игры
@@ -104,18 +145,20 @@ addLayer("main", {
         unlocked: true,
         points: new Decimal(0),
 		gold: new Decimal(0),
-        checkToggleId: '',
+        checkToggleGridId: '',
+        checkToggleGridId_2:'',
+        checkToggleSlotId: '',
+        checkToggleType: '',
         equipment: {
-            helmet: {},
-            chestplate: {},
-            leggings: {},
-            boots: {},
-            primary_weapon: {},
-            secondary_weapon: {},
-            ring: {},
-            amulet: {},
-            necklace: {},
-            ring_2: {},
+            helmet: {item_type: 'helmet',level: 0,rarity:0},
+            chestplate: {item_type: 'chestplate',  level: 0,rarity:0},
+            leggings: {item_type: 'leggings', level: 0,rarity:0},
+            boots: {item_type: 'boots',  level: 0,rarity:0},
+            primary_weapon: {item_type: 'none', level: 0,rarity:0},
+            secondary_weapon: {item_type: 'none',  level: 0,rarity:0},
+            ring_1: {item_type: 'ring', level: 0,rarity:0},
+            necklace: {item_type: 'necklace',  level: 0,rarity:0},
+            ring_2: {item_type: 'ring', level: 0,rarity:0},
         },
         character: {
             class: 'none',
@@ -132,6 +175,589 @@ addLayer("main", {
     color: "white",
     baseAmount() {return player.points}, 
     type: "normal", 
+    //Слоты для персонажа (отдельный объект от основного инвентаря)
+    clickables: {
+        11: {
+            type() {return 'primary_weapon'},
+        display() {
+            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+        },
+        canClick(){
+            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type())||player.main.equipment[this.type()].item_name)
+        },
+        onClick() {
+            if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
+            else player.main.checkToggleSlotId = this.id
+            toggleGridAndSlot(this.type())
+        },
+            tooltip() {
+                let data = player.main.equipment[this.type()]
+            let table = ''
+            let statsTable = ''
+            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
+            <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
+            <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
+            for (i in data) {
+                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+            }
+            return table+statsTable
+        },
+        style() {
+            if (player.main.checkToggleSlotId==this.id) return {
+                'width':'75px',
+                'min-height':'75px',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:this.type()}.png')`,
+               'border':'4px solid rgba(248, 175, 49, 1)',
+            }
+            else return {
+                'width':'75px',
+                'min-height':'75px',
+                'border':'4px solid rgba(182, 150, 96, 1)',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:this.type()}.png')`
+            }
+        },
+ tooltipStyle() {
+               return{
+                        'border':'4px solid transparent',
+                        'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
+                        'background':'#0f0f0f',
+                        'width':'250px',
+                        'border-image-slice': '1'
+                    };
+                }
+        },
+        12: {
+            type() {return 'secondary_weapon'},
+        display() {
+            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+        },
+        canClick(){
+            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type())||player.main.equipment[this.type()].item_name)
+        },
+        onClick() {
+            if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
+            else player.main.checkToggleSlotId = this.id
+            toggleGridAndSlot(this.type())
+        },
+            tooltip() {
+                let data = player.main.equipment[this.type()]
+            let table = ''
+            let statsTable = ''
+            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
+            <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
+            <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
+            for (i in data) {
+                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+            }
+            return table+statsTable
+        },
+        style() {
+            if (player.main.checkToggleSlotId==this.id) return {
+                'width':'75px',
+                'min-height':'75px',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:this.type()}.png')`,
+               'border':'4px solid rgba(248, 175, 49, 1)',
+            }
+            else return {
+                'width':'75px',
+                'min-height':'75px',
+                'border':'4px solid rgba(182, 150, 96, 1)',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:this.type()}.png')`
+            }
+        },
+ tooltipStyle() {
+               return{
+                        'border':'4px solid transparent',
+                        'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
+                        'background':'#0f0f0f',
+                        'width':'250px',
+                        'border-image-slice': '1'
+                    };
+                }
+        },
+        13: {
+            type() {return 'helmet'},
+        display() {
+            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+        },
+        canClick(){
+            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type())||player.main.equipment[this.type()].item_name)
+        },
+        onClick() {
+            if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
+            else player.main.checkToggleSlotId = this.id
+            toggleGridAndSlot(this.type())
+        },
+            tooltip() {
+                let data = player.main.equipment[this.type()]
+            let table = ''
+            let statsTable = ''
+            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
+            <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
+            <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
+            for (i in data) {
+                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+            }
+            return table+statsTable
+        },
+        style() {
+            if (player.main.checkToggleSlotId==this.id) return {
+                'width':'75px',
+                'min-height':'75px',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:this.type()}.png')`,
+               'border':'4px solid rgba(248, 175, 49, 1)',
+            }
+            else return {
+                'width':'75px',
+                'min-height':'75px',
+                'border':'4px solid rgba(182, 150, 96, 1)',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:this.type()}.png')`
+            }
+        },
+ tooltipStyle() {
+               return{
+                        'border':'4px solid transparent',
+                        'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
+                        'background':'#0f0f0f',
+                        'width':'250px',
+                        'border-image-slice': '1'
+                    };
+                }
+        },
+        14: {
+            type() {return 'chestplate'},
+        display() {
+            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+        },
+        canClick(){
+            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type())||player.main.equipment[this.type()].item_name)
+        },
+        onClick() {
+            if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
+            else player.main.checkToggleSlotId = this.id
+            toggleGridAndSlot(this.type())
+        },
+            tooltip() {
+                let data = player.main.equipment[this.type()]
+            let table = ''
+            let statsTable = ''
+            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
+            <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
+            <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
+            for (i in data) {
+                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+            }
+            return table+statsTable
+        },
+        style() {
+            if (player.main.checkToggleSlotId==this.id) return {
+                'width':'75px',
+                'min-height':'75px',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:this.type()}.png')`,
+               'border':'4px solid rgba(248, 175, 49, 1)',
+            }
+            else return {
+                'width':'75px',
+                'min-height':'75px',
+                'border':'4px solid rgba(182, 150, 96, 1)',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:this.type()}.png')`
+            }
+        },
+ tooltipStyle() {
+               return{
+                        'border':'4px solid transparent',
+                        'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
+                        'background':'#0f0f0f',
+                        'width':'250px',
+                        'border-image-slice': '1'
+                    };
+                }
+        },
+        15: {
+            type() {return 'leggings'},
+        display() {
+            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+        },
+        canClick(){
+            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type())||player.main.equipment[this.type()].item_name)
+        },
+        onClick() {
+            if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
+            else player.main.checkToggleSlotId = this.id
+            toggleGridAndSlot(this.type())
+        },
+            tooltip() {
+                let data = player.main.equipment[this.type()]
+            let table = ''
+            let statsTable = ''
+            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
+            <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
+            <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
+            for (i in data) {
+                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+            }
+            return table+statsTable
+        },
+        style() {
+            if (player.main.checkToggleSlotId==this.id) return {
+                'width':'75px',
+                'min-height':'75px',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:this.type()}.png')`,
+               'border':'4px solid rgba(248, 175, 49, 1)',
+            }
+            else return {
+                'width':'75px',
+                'min-height':'75px',
+                'border':'4px solid rgba(182, 150, 96, 1)',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:this.type()}.png')`
+            }
+        },
+ tooltipStyle() {
+               return{
+                        'border':'4px solid transparent',
+                        'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
+                        'background':'#0f0f0f',
+                        'width':'250px',
+                        'border-image-slice': '1'
+                    };
+                }
+        },
+        16: {
+            type() {return 'boots'},
+        display() {
+            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+        },
+        canClick(){
+            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type())||player.main.equipment[this.type()].item_name)
+        },
+        onClick() {
+            if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
+            else player.main.checkToggleSlotId = this.id
+            toggleGridAndSlot(this.type())
+        },
+            tooltip() {
+                let data = player.main.equipment[this.type()]
+            let table = ''
+            let statsTable = ''
+            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
+            <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
+            <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
+            for (i in data) {
+                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+            }
+            return table+statsTable
+        },
+        style() {
+            if (player.main.checkToggleSlotId==this.id) return {
+                'width':'75px',
+                'min-height':'75px',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:this.type()}.png')`,
+               'border':'4px solid rgba(248, 175, 49, 1)',
+            }
+            else return {
+                'width':'75px',
+                'min-height':'75px',
+                'border':'4px solid rgba(182, 150, 96, 1)',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:this.type()}.png')`
+            }
+        },
+ tooltipStyle() {
+               return{
+                        'border':'4px solid transparent',
+                        'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
+                        'background':'#0f0f0f',
+                        'width':'250px',
+                        'border-image-slice': '1'
+                    };
+                }
+        },
+        17: {
+            type() {return 'ring_1'},
+        display() {
+            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+        },
+        canClick(){
+            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type=='ring')||player.main.equipment[this.type()].item_name)
+        },
+        onClick() {
+            if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
+            else player.main.checkToggleSlotId = this.id
+            toggleGridAndSlot(this.type())
+        },
+            tooltip() {
+                let data = player.main.equipment[this.type()]
+            let table = ''
+            let statsTable = ''
+            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
+            <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
+            <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
+            for (i in data) {
+                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+            }
+            return table+statsTable
+        },
+        style() {
+            if (player.main.checkToggleSlotId==this.id) return {
+                'width':'75px',
+                'min-height':'75px',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:'ring'}.png')`,
+               'border':'4px solid rgba(248, 175, 49, 1)',
+            }
+            else return {
+                'width':'75px',
+                'min-height':'75px',
+                'border':'4px solid rgba(182, 150, 96, 1)',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:'ring'}.png')`
+            }
+        },
+ tooltipStyle() {
+               return{
+                        'border':'4px solid transparent',
+                        'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
+                        'background':'#0f0f0f',
+                        'width':'250px',
+                        'border-image-slice': '1'
+                    };
+                }
+        },
+        18: {
+            type() {return 'ring_2'},
+        display() {
+            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+        },
+        canClick(){
+            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type=='ring')||player.main.equipment[this.type()].item_name)
+        },
+        onClick() {
+            if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
+            else player.main.checkToggleSlotId = this.id
+            toggleGridAndSlot(this.type())
+        },
+            tooltip() {
+                let data = player.main.equipment[this.type()]
+            let table = ''
+            let statsTable = ''
+            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
+            <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
+            <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
+            for (i in data) {
+                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+            }
+            return table+statsTable
+        },
+        style() {
+            if (player.main.checkToggleSlotId==this.id) return {
+                'width':'75px',
+                'min-height':'75px',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:'ring'}.png')`,
+               'border':'4px solid rgba(248, 175, 49, 1)',
+            }
+            else return {
+                'width':'75px',
+                'min-height':'75px',
+                'border':'4px solid rgba(182, 150, 96, 1)',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:'ring'}.png')`
+            }
+        },
+ tooltipStyle() {
+               return{
+                        'border':'4px solid transparent',
+                        'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
+                        'background':'#0f0f0f',
+                        'width':'250px',
+                        'border-image-slice': '1'
+                    };
+                }
+        },
+        19: {
+            type() {return 'necklace'},
+        display() {
+            return player.main.equipment[this.type()].item_name?player.main.equipment[this.type()].item_name:""
+        },
+        canClick(){
+            return ((player.main.checkToggleGridId&&getGridData('main',player.main.checkToggleGridId).item_type==this.type())||player.main.equipment[this.type()].item_name)
+        },
+        onClick() {
+            if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
+            else player.main.checkToggleSlotId = this.id
+            toggleGridAndSlot(this.type())
+        },
+            tooltip() {
+                let data = player.main.equipment[this.type()]
+            let table = ''
+            let statsTable = ''
+            if (data.rarity>0) statsTable = '|'
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
+            <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
+            <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
+            for (i in data) {
+                if (data[i]>0&&i!='rarity') statsTable+=` ${getStatName(i, data[i])} |`
+            }
+            return table+statsTable
+        },
+        style() {
+            if (player.main.checkToggleSlotId==this.id) return {
+                'width':'75px',
+                'min-height':'75px',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:this.type()}.png')`,
+               'border':'4px solid rgba(248, 175, 49, 1)',
+            }
+            else return {
+                'width':'75px',
+                'min-height':'75px',
+                'border':'4px solid rgba(182, 150, 96, 1)',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/${player.main.equipment[this.type()].rarity?`rarity_`+player.main.equipment[this.type()].rarity:this.type()}.png')`
+            }
+        },
+ tooltipStyle() {
+               return{
+                        'border':'4px solid transparent',
+                        'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
+                        'background':'#0f0f0f',
+                        'width':'250px',
+                        'border-image-slice': '1'
+                    };
+                }
+        },
+        20: {
+            type() {return 'skill'},
+        display() {
+            return ''
+        },
+        canClick(){
+            return true
+        },
+        style() {
+                 return {
+                'width':'75px',
+                'min-height':'75px',
+                'border':'4px solid rgba(182, 150, 96, 1)',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/rarity_0')`
+            }
+        },
+ tooltipStyle() {
+               return{
+                        'border':'4px solid transparent',
+                        'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
+                        'background':'#0f0f0f',
+                        'width':'250px',
+                        'border-image-slice': '1'
+                    };
+                }
+        },
+    },
     //Инвентарь
     grid: {
         rows: 6, 
@@ -146,8 +772,14 @@ addLayer("main", {
             return true
         },
         onClick(data, id) { 
-            player[this.layer].grid[id]++
-        },
+            if (player.main.checkToggleGridId==id) player.main.checkToggleGridId = ''
+            else if (player.main.checkToggleGridId_2=='') player.main.checkToggleGridId = id
+
+            if (player.main.checkToggleGridId_2==id) player.main.checkToggleGridId_2 = ''
+            else if (player.main.checkToggleGridId!='') player.main.checkToggleGridId_2 = id
+            if (player.main.checkToggleSlotId!='')toggleGridAndSlot(tmp.main.clickables[player.main.checkToggleSlotId].type)
+            toggleGrids()
+            },
         getDisplay(data, id) {
             return data.item_name
         },
@@ -156,7 +788,7 @@ addLayer("main", {
             let table = ''
             let statsTable = ''
             if (data.rarity>0) statsTable = '|'
-            if (data.rarity>0) table = `${getEquipTypeName(data.item_type)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
@@ -166,7 +798,18 @@ addLayer("main", {
             return table+statsTable
         },
         getStyle(data, id) {
-            return {
+                        if (player.main.checkToggleGridId==id||player.main.checkToggleGridId_2==id) return {
+                'width':'75px',
+                'height':'75px',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-image': `url('resources/rarity_${data.rarity}.png')`,
+               'border':'4px solid rgba(248, 175, 49, 1)',
+            }
+           else return {
                 'width':'75px',
                 'height':'75px',
                 'border':'4px solid rgba(182, 150, 96, 1)',
@@ -205,8 +848,11 @@ addLayer("main", {
             "Inventory": {
                 content:[
                 ["column", [
-                
                 ["blank",['60px','200px']],
+                ['row',[['clickable',[11]], ["blank",['200px','80px']],['clickable',[12]]]],
+                ['row',[['clickable',[13]], ["blank",['200px','80px']],['clickable',[15]]]],
+                ['row',[['clickable',[14]], ["blank",['200px','80px']],['clickable',[16]]]],
+                ['row',[['clickable',[17]], ["blank",['17px','80px']],['clickable',[18]], ["blank",['17px','80px']],['clickable',[19]], ["blank",['17px','80px']],['clickable',[20]]]],
                 "blank",
                 "grid",
                 "blank",
