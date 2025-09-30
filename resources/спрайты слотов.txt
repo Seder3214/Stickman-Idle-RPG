@@ -1,0 +1,5 @@
+chestplate (нагрудник)
+leggings (поножи)
+boots (ботинки)
+ring (кольцо)
+necklace (ожерелье)
