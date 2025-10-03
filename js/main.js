@@ -12,6 +12,26 @@ function getRarityName(rarity) {
         case 8: return '(Секретный)'; break
     }
 }
+function getSlotBuffs() {
+    let slot = player.main.equipment
+    let data = {add_vitality:0,add_strength:0,add_agility:0,add_intelligence:0,attack:0, speed:0, defense:0, luck:0, fire_attack:0,poison_attack:0, water_attack:0}
+    for (i in slot) {
+        for (j in data) {
+                if (slot[i][j]!=undefined) data[j] += slot[i][j]
+        }
+    }
+    return data
+}
+function applySlotBuffs() {
+    let data = getSlotBuffs()
+    let playerData = player.main.character 
+    for (i in player.main.character) {
+        for (j in data) {
+        if (i==j && j!='speed') playerData[i] = data[j]
+    }
+    }
+    return player.main.character
+}
 function toggleGridAndSlot(type) {
             if (player.main.checkToggleGridId!=''&&player.main.checkToggleSlotId!='') {
                 console.log(getGridData('main',player.main.checkToggleGridId))
@@ -89,11 +109,11 @@ function getEquipTypeName(type) {
         case 'necklace': return '[Ожерелье]'; break
     }
 }
-//Функция для вывода характеристик оружия
+//Функция для вывода характеристик снаряжения
 function getStatName(stat, value) {
     switch(stat) {
         case 'attack': return `Атака: +${format(value,0)}`; break
-        case 'speed': return `Скорость: ${format(value*100,0)}%`; break
+        case 'speed': return `Скорость: ${format(1/value,2)}/сек`; break
         case 'fire_attack': return `Огненный урон: +${format(value,0)}`; break
         case 'water_attack': return `Водный урон: +${format(value,0)}`; break
         case 'poison_attack': return `Отравление: +${format(value,0)}`; break
@@ -103,6 +123,23 @@ function getStatName(stat, value) {
         case 'add_vitality': return `Живучесть: +${format(value,0)}`; break
         case 'add_agility': return `Ловкость: +${format(value,0)}`; break
         case 'add_intelligence': return `Мудрость: +${format(value,0)}`; break
+    }
+}
+//Функция для вывода основных характеристик персонажа
+function getPlayerStats(stat, value, bonus) {
+    switch(stat) {
+        case 'add_strength': return `<div class='statDiv'>Сила</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'add_vitality': return `<div class='statDiv'>Живучесть:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'add_agility': return `<div class='statDiv'>Ловкость:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'add_intelligence': return `<div class='statDiv'>Мудрость:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'attack': return `<div class='statDiv'>Атака:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'speed': return `<div class='statDiv'>Скорость атаки:</div><div class='statDiv'>${format(value!=undefined?1/value:0,2)}/сек</div><div class='statDiv'>
+        ${format(bonus!=0?1/bonus:0,2)}/сек</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'defense': return `<div class='statDiv'>Защита:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'luck': return `<div class='statDiv'>Удача:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'fire_attack': return `<div class='statDiv'>Огненный урон:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'water_attack': return `<div class='statDiv'>Водный урон:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'poison_attack': return `<div class='statDiv'>Отравление:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
     }
 }
 //Пул лута обычной редкости
@@ -154,23 +191,31 @@ addLayer("main", {
         checkToggleSlotId: '',
         checkToggleType: '',
         equipment: {
-            helmet: {item_type: 'helmet',level: 0,rarity:0},
-            chestplate: {item_type: 'chestplate',  level: 0,rarity:0},
-            leggings: {item_type: 'leggings', level: 0,rarity:0},
-            boots: {item_type: 'boots',  level: 0,rarity:0},
+            helmet: {item_type: 'none',level: 0,rarity:0},
+            chestplate: {item_type: 'none',  level: 0,rarity:0},
+            leggings: {item_type: 'none', level: 0,rarity:0},
+            boots: {item_type: 'none',  level: 0,rarity:0},
             primary_weapon: {item_type: 'none', level: 0,rarity:0},
             secondary_weapon: {item_type: 'none',  level: 0,rarity:0},
-            ring_1: {item_type: 'ring', level: 0,rarity:0},
-            necklace: {item_type: 'necklace',  level: 0,rarity:0},
-            ring_2: {item_type: 'ring', level: 0,rarity:0},
+            ring_1: {item_type: 'none', level: 0,rarity:0},
+            necklace: {item_type: 'none',  level: 0,rarity:0},
+            ring_2: {item_type: 'none', level: 0,rarity:0},
         },
         character: {
             class: 'none',
+            add_strength:0, 
+            add_vitality:0, 
+            add_agility:0,
+            add_intelligence:0,
             vitality:new Decimal(0),
             strength:new Decimal(0),
             defense: new Decimal(0),
             agility: new Decimal(0),
             intelligence: new Decimal(0),
+            attack: new Decimal(0),
+            fire_attack: new Decimal(0),
+            water_attack: new Decimal(0),
+            poison_attack: new Decimal(0),
             luck: new Decimal(0),
             crit: new Decimal(0),
             crit_chance: new Decimal(0),
@@ -247,7 +292,8 @@ addLayer("main", {
                         'border':'4px solid transparent',
                         'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
                         'background':'#0f0f0f',
-                        'width':'250px',
+                        'width':'225px',
+                        'font-size':'12px',
                         'border-image-slice': '1'
                     };
                 }
@@ -318,8 +364,9 @@ addLayer("main", {
                         'border':'4px solid transparent',
                         'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
                         'background':'#0f0f0f',
-                        'width':'250px',
-                        'border-image-slice': '1'
+                        'width':'225px',
+                        'border-image-slice': '1',
+                        'font-size':'12px',
                     };
                 }
         },
@@ -389,7 +436,8 @@ addLayer("main", {
                         'border':'4px solid transparent',
                         'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
                         'background':'#0f0f0f',
-                        'width':'250px',
+                        'font-size':'12px',
+                        'width':'225px',
                         'border-image-slice': '1'
                     };
                 }
@@ -460,7 +508,8 @@ addLayer("main", {
                         'border':'4px solid transparent',
                         'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
                         'background':'#0f0f0f',
-                        'width':'250px',
+                        'font-size':'12px',
+                        'width':'225px',
                         'border-image-slice': '1'
                     };
                 }
@@ -531,7 +580,8 @@ addLayer("main", {
                         'border':'4px solid transparent',
                         'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
                         'background':'#0f0f0f',
-                        'width':'250px',
+                        'width':'225px',
+                        'font-size':'12px',
                         'border-image-slice': '1'
                     };
                 }
@@ -602,7 +652,8 @@ addLayer("main", {
                         'border':'4px solid transparent',
                         'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
                         'background':'#0f0f0f',
-                        'width':'250px',
+                        'width':'225px',
+                        'font-size':'12px',
                         'border-image-slice': '1'
                     };
                 }
@@ -669,14 +720,15 @@ addLayer("main", {
             }
         },
  tooltipStyle() {
-               return{
+               return {
                         'border':'4px solid transparent',
                         'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
                         'background':'#0f0f0f',
-                        'width':'250px',
+                        'width':'225px',
+                        'font-size':'12px',
                         'border-image-slice': '1'
-                    };
-                }
+        }
+    },
         },
         18: {
             type() {return 'ring_2'},
@@ -740,14 +792,15 @@ addLayer("main", {
             }
         },
  tooltipStyle() {
-               return{
+               return {
                         'border':'4px solid transparent',
                         'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
                         'background':'#0f0f0f',
-                        'width':'250px',
+                        'width':'225px',
+                        'font-size':'12px',
                         'border-image-slice': '1'
-                    };
-                }
+        }
+    },
         },
         19: {
             type() {return 'necklace'},
@@ -811,14 +864,15 @@ addLayer("main", {
             }
         },
  tooltipStyle() {
-               return{
+               return {
                         'border':'4px solid transparent',
                         'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
                         'background':'#0f0f0f',
-                        'width':'250px',
+                        'width':'225px',
+                        'font-size':'12px',
                         'border-image-slice': '1'
-                    };
-                }
+        }
+    },
         },
         20: {
             type() {return 'skill'},
@@ -842,15 +896,16 @@ addLayer("main", {
             }
         },
  tooltipStyle() {
-               return{
+               return {
                         'border':'4px solid transparent',
                         'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
                         'background':'#0f0f0f',
-                        'width':'250px',
+                        'width':'225px',
+                        'font-size':'12px',
                         'border-image-slice': '1'
-                    };
-                }
-        },
+        }
+    },
+},
     },
     //Инвентарь
     grid: {
@@ -871,7 +926,7 @@ addLayer("main", {
 
             if (player.main.checkToggleGridId_2==id) player.main.checkToggleGridId_2 = ''
             else if (player.main.checkToggleGridId!='') player.main.checkToggleGridId_2 = id
-            if (player.main.checkToggleSlotId!='')toggleGridAndSlot(tmp.main.clickables[player.main.checkToggleSlotId].type)
+            if (player.main.checkToggleSlotId!=''&&player.main.checkToggleGridId!=''&&(getGridData('main',player.main.checkToggleGridId).item_type==tmp.main.clickables[player.main.checkToggleSlotId].type||getGridData('main',player.main.checkToggleGridId).item_type=='none')) toggleGridAndSlot(tmp.main.clickables[player.main.checkToggleSlotId].type)
             toggleGrids()
             },
         getDisplay(data, id) {
@@ -930,7 +985,8 @@ addLayer("main", {
                         'border':'4px solid transparent',
                         'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
                         'background':'#0f0f0f',
-                        'width':'250px',
+                        'width':'225px',
+                        'font-size':'12px',
                         'border-image-slice': '1'
                     };
                 }
@@ -943,26 +999,39 @@ addLayer("main", {
         tabFormat: {
             "Player": {
                 content:[
-                     ["column", [
-                    "upgrades",
-                    ]
+                ['column', [['display-text',function() {
+                    let table = ''
+                    let inventory = getSlotBuffs()
+                    let playerData = player.main.character
+                    for (i in inventory) {
+                        table+=` ${getPlayerStats(i, playerData[i], inventory[i])}<br>`
+                    }
+                    return `<h3>Характеристики персонажа</h3><hr><br><div class='statDiv'>Хар-ка</div><div class='statDiv'>Персонаж</div><div class='statDiv'>Экипировка</div><div class='statDiv'>Множ. от уровня/карт улучшения</div><br>`+table}]]],
                 ]
-         ]
 		},
             "Inventory": {
                 content:[
-                ["column", [
-                ["blank",['60px','200px']],
-                ['row',[['clickable',[11]], ["blank",['200px','80px']],['clickable',[12]]]],
-                ['row',[['clickable',[13]], ["blank",['200px','80px']],['clickable',[15]]]],
-                ['row',[['clickable',[14]], ["blank",['200px','80px']],['clickable',[16]]]],
-                ['row',[['clickable',[17]], ["blank",['17px','80px']],['clickable',[18]], ["blank",['17px','80px']],['clickable',[19]], ["blank",['17px','80px']],['clickable',[20]]]],
+                ["blank",['60px','150px']],
+                ['row',[
+                ['column', [['display-text',function() {
+                    let table = ''
+                    let data = getSlotBuffs()
+                    for (i in data) {
+                        if (data[i]>0) table+=` ${getStatName(i, data[i])}<br>`
+                    }
+                    return `<h3>Бонусы от экипировки</h3><hr>`+(table!=''?table:`<span style='color:rgba(84, 84, 84, 1); font-size:12px'>Оденьте снаряжение для получения бонусов.</span>`)}]], {'margin-right':'40px'}],
+                    ['v-line', ['200px'], {'margin-left':'-20px'}],
+                ['column', [
+                ['row',[['clickable',[11]], ["blank",['165px','80px']],['clickable',[12]]]],
+                ['row',[['clickable',[13]], ["blank",['165px','80px']],['clickable',[15]]]],
+                ['row',[['clickable',[14]], ["blank",['165px','80px']],['clickable',[16]]]],
+                ['row',[['clickable',[17]], ["blank",['5px','80px']],['clickable',[18]], ["blank",['5px','80px']],['clickable',[19]], ["blank",['5px','80px']],['clickable',[20]]]],
+                ], {'margin-right':'40px'}],
+                ]],
                 "blank",
                 "grid",
                 "blank",
                     ]
-                ]
-         ]
 		},
             "Forge": {
                 content:[
