@@ -12,9 +12,49 @@ function getRarityName(rarity) {
         case 8: return '(Секретный)'; break
     }
 }
+function excludeStats() {
+let scaled_stats = ['rarity','scaled_attack','scaled_defense','scaled_luck']
+    return scaled_stats
+}
+function updateSlotScaleBuffs() {
+    for (i in player.main.clickables) if (player.main.clickables[i].item_name) {getScaleBuffs(true, tmp.main.clickables[i].type)}
+}
+function getScaleBuffs(slot=false, type='') {
+            let scales = ['vitality_scale', 'strength_scale','agility_scale', 'intelligence_scale']
+            let scaled_stats = excludeStats()
+            let scaleNames = {'F': 0.10, 'E': 0.175, 'D':0.25, 'C':0.4, 'B':0.625, 'A': 0.765, 'S': 1, 'SS':1.5, 'SSS':2,'R':2.5,'SR':3, 'SSR':3.5, 'UR':4, 'X':5}
+            let data = player.main.equipment[type]
+            let currentEffect = 1
+            let currentStat=''
+            for (i in data) {
+                if (scales.includes(i)) {
+                    for (j in data) {
+                        if (j!='speed' &&(!scaled_stats.includes(j)) && data[j]>0) {
+                            let base = data[j]
+                            currentStat=j
+                            let subI = i
+                            let statDisplay = subI.split('_')[0]
+                            let mainStat = player.main.character[statDisplay].toNumber()+(getSlotBuffs()[`add_${statDisplay}`]?getSlotBuffs()[`add_${statDisplay}`]:0)
+                            let multi = (scaleNames[data[subI]]*(mainStat+1))+1
+                            currentEffect += Math.log(base*multi)*(Math.sqrt(Math.pow(base,2)/multi))*(multi/10)
+                        }
+                    }
+                }
+            }
+            if (slot&&currentStat!='') player.main.equipment[type][`scaled_${currentStat}`] = currentEffect
+        }
+function getSlotDisplay() {
+    let table = ['column', [
+                ['row',[['clickable',[11]], ["blank",['165px','80px']],['clickable',[12]]]],
+                ['row',[['clickable',[13]], ["blank",['165px','80px']],['clickable',[15]]]],
+                ['row',[['clickable',[14]], ["blank",['165px','80px']],['clickable',[16]]]],
+                ['row',[['clickable',[17]], ["blank",['5px','80px']],['clickable',[18]], ["blank",['5px','80px']],['clickable',[19]], ["blank",['5px','80px']],['clickable',[20]]]],
+                ], {'margin-right':'40px'}]
+    return table
+}
 function getSlotBuffs() {
     let slot = player.main.equipment
-    let data = {add_vitality:0,add_strength:0,add_agility:0,add_intelligence:0,attack:0, speed:0, defense:0, luck:0, fire_attack:0,poison_attack:0, water_attack:0}
+    let data = {add_vitality:0,add_strength:0,add_agility:0,add_intelligence:0,attack:0, speed:0, defense:0, luck:0, fire_attack:0,poison_attack:0, water_attack:0, scaled_attack:0, scaled_defense:0,scaled_luck:0}
     for (i in slot) {
         for (j in data) {
                 if (slot[i][j]!=undefined) data[j] += slot[i][j]
@@ -24,6 +64,7 @@ function getSlotBuffs() {
 }
 function applySlotBuffs() {
     let data = getSlotBuffs()
+    let exclude = ['attack','defense']
     let playerData = player.main.character 
     for (i in player.main.character) {
         for (j in data) {
@@ -132,11 +173,11 @@ function getPlayerStats(stat, value, bonus) {
         case 'add_vitality': return `<div class='statDiv'>Живучесть:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
         case 'add_agility': return `<div class='statDiv'>Ловкость:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
         case 'add_intelligence': return `<div class='statDiv'>Мудрость:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
-        case 'attack': return `<div class='statDiv'>Атака:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'attack': return `<div class='statDiv'>Атака:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)} (${format(getSlotBuffs()['scaled_attack'],2)})</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
         case 'speed': return `<div class='statDiv'>Скорость атаки:</div><div class='statDiv'>${format(value!=undefined?1/value:0,2)}/сек</div><div class='statDiv'>
         ${format(bonus!=0?1/bonus:0,2)}/сек</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
-        case 'defense': return `<div class='statDiv'>Защита:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
-        case 'luck': return `<div class='statDiv'>Удача:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'defense': return `<div class='statDiv'>Защита:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)} (${format(getSlotBuffs()['scaled_defense'],2)})</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'luck': return `<div class='statDiv'>Удача:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)} (${format(getSlotBuffs()['scaled_luck'],2)})</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
         case 'fire_attack': return `<div class='statDiv'>Огненный урон:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
         case 'water_attack': return `<div class='statDiv'>Водный урон:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
         case 'poison_attack': return `<div class='statDiv'>Отравление:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
@@ -159,7 +200,7 @@ function getCommonWeapon() {
         {item_type: 'boots',item_subtype: 'boots', item_name:'Кожаные Ботинки', level: 0, defense:3, vitality_scale:"F", strength_scale:"F", agility_scale:"F", rarity:1},
         {item_type: 'ring', item_subtype: 'ring',item_name:'Железное Кольцо', level: 0, add_strength:2, rarity:1},
         {item_type: 'ring', item_subtype: 'ring',item_name:'Кольцо с магическим камнем', level: 0, add_intelligence:3, rarity:1},
-        {item_type: 'ring',item_subtype: 'ring', item_name:'Кольцо с Четырёхлистным клевером', level: 0, luck:3, rarity:1},
+        {item_type: 'ring',item_subtype: 'ring', item_name:'Кольцо с Четырёхлистным клевером',level: 0, luck:3, rarity:1},
         {item_type: 'necklace', item_subtype: 'necklace',item_name:'Серебрянная цепочка', level: 0, add_strength:1, add_vitality: 1, add_agility:1, add_intelligence:1, rarity:1},
         {item_type: 'necklace', item_subtype: 'necklace',item_name:'Позолоченная печать', level: 0, luck:2, rarity:1},
     ]
@@ -220,6 +261,10 @@ addLayer("main", {
             crit: new Decimal(0),
             crit_chance: new Decimal(0),
         },
+        cooldowns: {
+            slotUpdate: 1,
+            gridUpdate: 1,
+        }
     }},
     color: "white",
     baseAmount() {return player.points}, 
@@ -239,9 +284,10 @@ addLayer("main", {
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
             else player.main.checkToggleSlotId = this.id
-            toggleGridAndSlot(this.type())
+            if (player.main.checkToggleGridId!='') toggleGridAndSlot(this.type())
         },
             tooltip() {
+            let exclude = excludeStats()
                 let data = player.main.equipment[this.type()]
             let table = ''
             let stats = []
@@ -252,10 +298,10 @@ addLayer("main", {
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') {
+                if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} `
+                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -311,9 +357,10 @@ addLayer("main", {
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
             else player.main.checkToggleSlotId = this.id
-            toggleGridAndSlot(this.type())
+            if (player.main.checkToggleGridId!='') toggleGridAndSlot(this.type())
         },
             tooltip() {
+            let exclude = excludeStats()
                 let data = player.main.equipment[this.type()]
             let table = ''
             let stats = []
@@ -324,10 +371,10 @@ addLayer("main", {
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') {
+                if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} `
+                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -383,9 +430,10 @@ addLayer("main", {
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
             else player.main.checkToggleSlotId = this.id
-            toggleGridAndSlot(this.type())
+            if (player.main.checkToggleGridId!='') toggleGridAndSlot(this.type())
         },
             tooltip() {
+            let exclude = excludeStats()
                 let data = player.main.equipment[this.type()]
             let table = ''
             let stats = []
@@ -396,10 +444,10 @@ addLayer("main", {
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') {
+                if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} `
+                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -455,9 +503,10 @@ addLayer("main", {
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
             else player.main.checkToggleSlotId = this.id
-            toggleGridAndSlot(this.type())
+            if (player.main.checkToggleGridId!='') toggleGridAndSlot(this.type())
         },
             tooltip() {
+            let exclude = excludeStats()
                 let data = player.main.equipment[this.type()]
             let table = ''
             let stats = []
@@ -468,10 +517,10 @@ addLayer("main", {
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') {
+                if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} `
+                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -527,9 +576,10 @@ addLayer("main", {
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
             else player.main.checkToggleSlotId = this.id
-            toggleGridAndSlot(this.type())
+            if (player.main.checkToggleGridId!='') toggleGridAndSlot(this.type())
         },
             tooltip() {
+            let exclude = excludeStats()
                 let data = player.main.equipment[this.type()]
             let table = ''
             let stats = []
@@ -540,10 +590,10 @@ addLayer("main", {
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') {
+                if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} `
+                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -599,9 +649,10 @@ addLayer("main", {
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
             else player.main.checkToggleSlotId = this.id
-            toggleGridAndSlot(this.type())
+            if (player.main.checkToggleGridId!='') toggleGridAndSlot(this.type())
         },
             tooltip() {
+            let exclude = excludeStats()
                 let data = player.main.equipment[this.type()]
             let table = ''
             let stats = []
@@ -612,10 +663,10 @@ addLayer("main", {
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') {
+                if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} `
+                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -671,9 +722,10 @@ addLayer("main", {
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
             else player.main.checkToggleSlotId = this.id
-            toggleGridAndSlot(this.type())
+            if (player.main.checkToggleGridId!='') toggleGridAndSlot(this.type())
         },
             tooltip() {
+            let exclude = excludeStats()
                 let data = player.main.equipment[this.type()]
             let table = ''
             let stats = []
@@ -684,10 +736,10 @@ addLayer("main", {
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') {
+                if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} `
+                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -743,9 +795,10 @@ addLayer("main", {
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
             else player.main.checkToggleSlotId = this.id
-            toggleGridAndSlot(this.type())
+            if (player.main.checkToggleGridId!='') toggleGridAndSlot(this.type())
         },
             tooltip() {
+            let exclude = excludeStats()
                 let data = player.main.equipment[this.type()]
             let table = ''
             let stats = []
@@ -756,10 +809,10 @@ addLayer("main", {
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') {
+                if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} `
+                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -815,9 +868,10 @@ addLayer("main", {
         onClick() {
             if (player.main.checkToggleSlotId==this.id) player.main.checkToggleSlotId = ''
             else player.main.checkToggleSlotId = this.id
-            toggleGridAndSlot(this.type())
+            if (player.main.checkToggleGridId!='') toggleGridAndSlot(this.type())
         },
             tooltip() {
+            let exclude = excludeStats()
                 let data = player.main.equipment[this.type()]
             let table = ''
             let stats = []
@@ -828,10 +882,10 @@ addLayer("main", {
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') {
+                if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} `
+                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -932,10 +986,35 @@ addLayer("main", {
         getDisplay(data, id) {
             return data.item_name
         },
+        getEffect(data, id) {
+            let scales = ['vitality_scale', 'strength_scale','agility_scale', 'intelligence_scale']
+            let scaled_stats = excludeStats()
+            let scaleNames = {'F': 0.10, 'E': 0.175, 'D':0.25, 'C':0.4, 'B':0.625, 'A': 0.765, 'S': 1}
+            let currentEffect = 1
+            let currentStat=''
+            for (i in data) {
+                if (scales.includes(i)) {
+                    for (j in data) {
+                        if (j!='speed' &&(!scaled_stats.includes(j)) && data[j]>0) {
+                            let base = data[j]
+                            currentStat=j
+                            let subI = i
+                            let statDisplay = subI.split('_')[0]
+                            let mainStat = player.main.character[statDisplay].toNumber()+getSlotBuffs()[`add_${statDisplay}`]
+                            let multi = (scaleNames[data[subI]]*(mainStat+1))+1
+                            currentEffect += Math.log(base*multi)*(Math.sqrt(Math.pow(base,2)/multi))*(multi/10)
+                        }
+                    }
+                }
+            getGridData('main',id)[`scaled_${currentStat}`] = currentEffect
+            }
+            return currentEffect
+},
         //Функция для текста в всплывалющем тултипе
         getTooltip(data,id) {
             let table = ''
             let statsTable = ''
+            let exclude = excludeStats()
             let stats = []
             let k = 0
             let j = 0
@@ -945,10 +1024,10 @@ addLayer("main", {
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
             for (i in data) {
-                if (data[i]>0&&i!='rarity') {
+                if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} `
+                    statsTable+=` ${getStatName(i, data[i])}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -979,6 +1058,7 @@ addLayer("main", {
                 'font-size':'16px',
                 'background-image': `url('resources/rarity_${data.rarity}.png')`
             }
+            
         },
  getTooltipStyle(data,id) {
                return{
@@ -1001,10 +1081,11 @@ addLayer("main", {
                 content:[
                 ['column', [['display-text',function() {
                     let table = ''
+                    let exclude = excludeStats()
                     let inventory = getSlotBuffs()
                     let playerData = player.main.character
                     for (i in inventory) {
-                        table+=` ${getPlayerStats(i, playerData[i], inventory[i])}<br>`
+                        if (!exclude.includes(i)) table+=` ${getPlayerStats(i, playerData[i], inventory[i])}<br>`
                     }
                     return `<h3>Характеристики персонажа</h3><hr><br><div class='statDiv'>Хар-ка</div><div class='statDiv'>Персонаж</div><div class='statDiv'>Экипировка</div><div class='statDiv'>Множ. от уровня/карт улучшения</div><br>`+table}]]],
                 ]
@@ -1016,17 +1097,13 @@ addLayer("main", {
                 ['column', [['display-text',function() {
                     let table = ''
                     let data = getSlotBuffs()
+                    let exclude = excludeStats()
                     for (i in data) {
-                        if (data[i]>0) table+=` ${getStatName(i, data[i])}<br>`
+                        if (data[i]>0&&(!exclude.includes(i))) table+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}<br>`
                     }
                     return `<h3>Бонусы от экипировки</h3><hr>`+(table!=''?table:`<span style='color:rgba(84, 84, 84, 1); font-size:12px'>Оденьте снаряжение для получения бонусов.</span>`)}]], {'margin-right':'40px'}],
                     ['v-line', ['200px'], {'margin-left':'-20px'}],
-                ['column', [
-                ['row',[['clickable',[11]], ["blank",['165px','80px']],['clickable',[12]]]],
-                ['row',[['clickable',[13]], ["blank",['165px','80px']],['clickable',[15]]]],
-                ['row',[['clickable',[14]], ["blank",['165px','80px']],['clickable',[16]]]],
-                ['row',[['clickable',[17]], ["blank",['5px','80px']],['clickable',[18]], ["blank",['5px','80px']],['clickable',[19]], ["blank",['5px','80px']],['clickable',[20]]]],
-                ], {'margin-right':'40px'}],
+                    getSlotDisplay()
                 ]],
                 "blank",
                 "grid",
@@ -1051,6 +1128,7 @@ addLayer("main", {
 		},
     },
     update(diff) {
-    },
+        for (i in player.main.clickables) getScaleBuffs(true, tmp.main.clickables[i].type)
+       },
     layerShown(){return true}
 })
