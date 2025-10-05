@@ -22,7 +22,7 @@ function updateSlotScaleBuffs() {
 function getScaleBuffs(slot=false, type='') {
             let scales = ['vitality_scale', 'strength_scale','agility_scale', 'intelligence_scale']
             let scaled_stats = excludeStats()
-            let scaleNames = {'-':0,'F': 0.10, 'E': 0.175, 'D':0.25, 'C':0.4, 'B':0.625, 'A': 0.765, 'S': 1, 'SS':1.5, 'SSS':2,'R':2.5,'SR':3, 'SSR':3.5, 'UR':4, 'X':5}
+            let scaleNames = {'-':0,'F': 0.10, 'E': 0.275, 'D':0.45, 'C':0.75, 'B':1, 'A': 1.365, 'S': 1.75, 'SS':2, 'SSS':2.5,'R':3,'SR':3.75, 'SSR':4.5, 'UR':6, 'X':7.5}
             let data = player.main.equipment[type]
             let currentEffect = 0
             let currentStat=''
