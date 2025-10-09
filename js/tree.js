@@ -18,7 +18,11 @@ addNode("blank", {
 
 addLayer("tree-tab", {
     tabFormat: ["blank",
-                ["display-text", function() {return `<h3 class='overlayThing'>Stage 1-10<br>Monsters: 10</h3>`}],
+                ["display-text", function() {
+                    let table=`<div style="width:85%; height:15px; font-size:12px; position: absolute; bottom:1px;color:black; background:linear-gradient(to right, aqua ${player.main.character.exp.div(tmp.main.getNextLevelReq).mul(100)}%, grey 0px);
+                border: 2px solid rgba(178, 178, 178, 1)">${format(player.main.character.exp,2)}/${format(tmp.main.getNextLevelReq,2)} Опыта - [${format(player.main.character.exp.div(tmp.main.getNextLevelReq).mul(100),2)}%]</div>
+                <h3 class='overlayThing'>Stage ${player.main.floor.floorNumber}-${player.main.floor.currentMonster}<br>Monsters: ${player.main.floor.monsters}</h3><br>`
+                    return table}],
                 "blank",
                 ['row',[
                     ["display-text", function() {return `<div style='background-color: red; border: 2px solid white; width: 100px; height:20px'>Player HP</div>
