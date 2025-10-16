@@ -88,7 +88,7 @@ function setupTempData(layerData, tmpData, funcsData) {
 		} else {
 			tmpData[item] = layerData[item]
 		}
-	}	
+	}
 }
 
 

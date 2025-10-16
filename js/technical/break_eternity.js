@@ -28,7 +28,6 @@
     });
     return Constructor;
   }
-
   /**
    * A LRU cache intended for caching pure functions.
    */

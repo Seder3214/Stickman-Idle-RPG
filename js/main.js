@@ -1,3 +1,37 @@
+
+function updateSlotStats() {
+    let slot = player.main.equipment;
+    let exclude = excludeStats();
+    let exclude2 = ['speed'];
+    for (let i in slot) {
+        // Инициализируем базовые статы если их нет
+        if (!slot[i]._baseStats) {
+            slot[i]._baseStats = {};
+            for (let j in slot[i]) {
+                if (typeof slot[i][j] === 'number' && j !== 'forgeMult' && j !== '_baseStats') {
+                    slot[i]._baseStats[j] = slot[i][j] / (slot[i].forgeMult || 1);
+                }
+            }
+        }
+        
+        // Применяем умножение
+        for (let j in slot[i]) {
+            if (!exclude.includes(j) && !exclude2.includes(j) && i !== 'speed' && slot[i]._baseStats[j] > 0) {
+                if (slot[i].forgeRarity==undefined&&slot[i].forgeLevel==undefined &&slot[i].forgeMult==undefined) {
+                   slot[i].forgeLevel = new Decimal(0)
+                    slot[i].forgeMult = new Decimal(1)                   
+                }
+                if (slot[i].rarity>slot[i].forgeRarity||slot[i].rarity<slot[i].forgeRarity) {
+                    player.main.buyables[11] = new Decimal(0)
+                    slot[i].forgeLevel = new Decimal(0)
+                    slot[i].forgeMult = new Decimal(1)
+                    slot[i][j] = slot[i]._baseStats[j]}
+                else slot[i][j] = slot[i]._baseStats[j] * slot[i].forgeMult;
+            }
+        }
+    }
+}
+
 //Функция для вывода редкости
 function getRarityName(rarity) {
     switch(rarity) {
@@ -13,10 +47,21 @@ function getRarityName(rarity) {
     }
 }
 function excludeStats() {
-let scaled_stats = ['rarity','scaled_attack','scaled_defense','scaled_luck']
+let scaled_stats = ['rarity','scaled_attack','scaled_defense','scaled_luck','forgeMult', 'forgeLevel','forgeRarity']
     return scaled_stats
 }
-function getSkills(id) {
+function getFullStat(stat) {
+    let fullstat = (player.main.character[`${stat}`].toNumber()+(getSlotBuffs()[`add_${stat}`]?getSlotBuffs()[`add_${stat}`]:0))*player.main.character[`multi_${stat}`]
+    return fullstat
+}
+function getNextForgeMult(id) {
+    let data = player.main.equipment[tmp.main.clickables[player.main.checkToggleSlotId].type]
+    let level = data.forgeLevel.add(1)
+    let eff = new Decimal(0.15).mul(level)
+    eff = eff.mul(level.div(10).add(1)).mul(level.sqrt().div(10).add(1))
+    return eff.add(1).pow(data.rarity).max(1)
+}
+function getWarriorSkills(id) {
     let player_vitality = (player.main.character['vitality'].toNumber()+(getSlotBuffs()[`add_vitality`]?getSlotBuffs()[`add_vitality`]:0))*player.main.character[`multi_vitality`]
     let player_strength = (player.main.character['strength'].toNumber()+(getSlotBuffs()[`add_strength`]?getSlotBuffs()[`add_strength`]:0))*player.main.character[`multi_strength`]
     let player_agility = (player.main.character['agility'].toNumber()+(getSlotBuffs()[`add_agility`]?getSlotBuffs()[`add_agility`]:0))*player.main.character[`multi_agility`]
@@ -44,9 +89,11 @@ function getLevelMultipliers(className='') {
     }
     for (s in stats){
     player.main.character[`multi_${stats[s]}`] = new Decimal(1)
-    for(i=1;i<playerLevel.toNumber();i++) {
-    if (baseMulti[s].gte(2))player.main.character[`multi_${stats[s]}`] = player.main.character[`multi_${stats[s]}`].mul(baseMulti[s].sub(new Decimal(0.2).mul(playerLevel.pow(0.5/baseMulti[s]))))
-    else player.main.character[`multi_${stats[s]}`] = player.main.character[`multi_${stats[s]}`].mul(baseMulti[s].sub(new Decimal(0.05).mul(playerLevel.pow(0.5/baseMulti[s]))))
+    for(i=2;i<=playerLevel.toNumber();i++) {
+    let multiplier = baseMulti[s].sub(new Decimal(0.2).mul(new Decimal(i).pow(0.5/baseMulti[s])))
+    let weakMultiplier = baseMulti[s].sub(new Decimal(0.05).mul(new Decimal(i).pow(0.5/baseMulti[s])))
+    if (baseMulti[s].gte(2))player.main.character[`multi_${stats[s]}`] = player.main.character[`multi_${stats[s]}`].mul(multiplier)
+    else player.main.character[`multi_${stats[s]}`] = player.main.character[`multi_${stats[s]}`].mul(weakMultiplier)
     }
     }
 }
@@ -108,20 +155,45 @@ function applySlotBuffs() {
     return player.main.character
 }
 function toggleGridAndSlot(type) {
-            if (player.main.checkToggleGridId!=''&&player.main.checkToggleSlotId!='') {
-                console.log(getGridData('main',player.main.checkToggleGridId))
-                let slotData = player.main.equipment[type]
-                player.main.equipment[type] = getGridData('main',player.main.checkToggleGridId)
-                player.main.grid[player.main.checkToggleGridId] = slotData
-                player.main.checkToggleGridId=''
-                player.main.checkToggleGridId_2=''
-                player.main.checkToggleSlotId=''
+if (player.main.checkToggleGridId!=''&&player.main.checkToggleSlotId!='') {
+    console.log(getGridData('main',player.main.checkToggleGridId))
+    let slotData = player.main.equipment[type]
+    let temp1 = player.main.equipment[type].forgeLevel
+    let temp2 = player.main.equipment[type].forgeMult
+    
+    player.main.equipment[type] = getGridData('main',player.main.checkToggleGridId)
+    player.main.grid[player.main.checkToggleGridId] = slotData
+    
+    // Сохраняем множитель для нового предмета в слоте
+    player.main.equipment[type].forgeLevel = temp1
+    player.main.equipment[type].forgeMult = temp2
+    
+    // Делим ВСЕ статы предмета в инвентаре на множитель
+    let stats = ['attack', 'defense','fire_attack', 'water_attack', 'poison_attack', 
+                'luck', 'add_strength', 'add_vitality', 'add_agility', 'add_intelligence'];
+    
+    for (let stat of stats) {
+        if (player.main.grid[player.main.checkToggleGridId][stat] !== undefined) {
+            let newValue = player.main.grid[player.main.checkToggleGridId][stat] / temp2;
+            if (!isNaN(newValue)) {
+                player.main.grid[player.main.checkToggleGridId][stat] = newValue;
             }
+        }
+    }
+    
+    player.main.checkToggleGridId=''
+    player.main.checkToggleGridId_2=''
+    player.main.checkToggleSlotId=''
+}
             else if (player.main.checkToggleSlotId!=''&&player.main.checkToggleGridId!=''&&player.main.equipment[type].item_name!='') {
                 let slotData = player.main.equipment[type]
                 let gridable=player.main.grid[player.main.checkToggleGridId]
                 player.main.grid[player.main.checkToggleGridId] = slotData
-                player.main.equipment[type] = gridable
+                player.main.equipment[type] += gridable
+                 player.main.equipment[type].forgeLevel = temp1
+                player.main.equipment[type].forgeMult = temp2
+                console.log(player.main.grid[player.main.checkToggleGridId].attack/(temp2))
+                if (!isNaN(player.main.grid[player.main.checkToggleGridId].attack/(temp2))) player.main.grid[player.main.checkToggleGridId].attack/(temp2)
                 player.main.checkToggleGridId=''
                 player.main.checkToggleGridId_2=''
                 player.main.checkToggleSlotId=''
@@ -294,16 +366,16 @@ addLayer("main", {
             }
         },
         equipment: {
-            helmet: {item_type: 'none',level: 0,rarity:0},
-            chestplate: {item_type: 'none',  level: 0,rarity:0},
-            leggings: {item_type: 'none', level: 0,rarity:0},
-            boots: {item_type: 'none',  level: 0,rarity:0},
-            primary_weapon: {item_type: 'none', level: 0,rarity:0},
-            secondary_weapon: {item_type: 'none',  level: 0,rarity:0},
-            ring_1: {item_type: 'none', level: 0,rarity:0},
-            necklace: {item_type: 'none',  level: 0,rarity:0},
-            ring_2: {item_type: 'none', level: 0,rarity:0},
-            bracelet: {item_type: 'none', level: 0,rarity:0},
+            helmet: {item_type: 'none',level: 0,rarity:0, forgeMult: new Decimal(1), forgeLevel: new Decimal(0), forgeRarity:0},
+            chestplate: {item_type: 'none',  level: 0,rarity:0, forgeMult: new Decimal(1), forgeLevel: new Decimal(0),forgeRarity:0},
+            leggings: {item_type: 'none', level: 0,rarity:0, forgeMult: new Decimal(1), forgeLevel: new Decimal(0),forgeRarity:0},
+            boots: {item_type: 'none',  level: 0,rarity:0, forgeMult: new Decimal(1), forgeLevel: new Decimal(0),forgeRarity:0},
+            primary_weapon: {item_type: 'none', level: 0,rarity:0, forgeMult: new Decimal(1), forgeLevel: new Decimal(0),forgeRarity:0},
+            secondary_weapon: {item_type: 'none',  level: 0,rarity:0, forgeMult: new Decimal(1), forgeLevel: new Decimal(0),forgeRarity:0},
+            ring_1: {item_type: 'none', level: 0,rarity:0, forgeMult: new Decimal(1), forgeLevel: new Decimal(0),forgeRarity:0},
+            necklace: {item_type: 'none',  level: 0,rarity:0, forgeMult: new Decimal(1), forgeLevel: new Decimal(0),forgeRarity:0},
+            ring_2: {item_type: 'none', level: 0,rarity:0, forgeMult: new Decimal(1), forgeLevel: new Decimal(0),forgeRarity:0},
+            bracelet: {item_type: 'none', level: 0,rarity:0, forgeMult: new Decimal(1), forgeLevel: new Decimal(0),forgeRarity:0},
         },
         character: {
             class: 'none',
@@ -352,6 +424,10 @@ getExpBarStyle() {
     clickables: {
         11: {
             type() {return 'primary_weapon'},
+            forgeLevel() {
+                let level = new Decimal(0)
+                return level
+            },
                display() {
             return player.main.equipment[this.type()].item_name?`<h5>${player.main.equipment[this.type()].item_name}</h5>`:""
         },
@@ -372,7 +448,7 @@ getExpBarStyle() {
             let stats = []
             let statsTable = ''
             if (data.rarity>0) statsTable = ''
-            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name}`+(player.main.equipment[this.type()].forgeLevel?` +${player.main.equipment[this.type()].forgeLevel} `:" ")+` ${getRarityName(data.rarity)}`+`</h3><span style='color:rgba(119, 119, 119, 1); font-size:12px'>${getStatName('speed',data['speed'])}</span><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
@@ -380,8 +456,8 @@ getExpBarStyle() {
                 if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
-                    if (stats.length%2!=0) statsTable +=` |`
+                    if (i!='speed')statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`<span style="font-size:10px">(+${format(data[`scaled_${i}`],2)})</span>`:``}`
+                    if (stats.length%2!=0 && i>1) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
                 }
@@ -445,7 +521,7 @@ getExpBarStyle() {
             let stats = []
             let statsTable = ''
             if (data.rarity>0) statsTable = ''
-            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name}`+(player.main.equipment[this.type()].forgeLevel?` +${player.main.equipment[this.type()].forgeLevel} `:" ")+ `${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
@@ -453,7 +529,7 @@ getExpBarStyle() {
                 if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
+                    statsTable+=`<span style="font-size:10px"> ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})</span>`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -518,7 +594,7 @@ getExpBarStyle() {
             let stats = []
             let statsTable = ''
             if (data.rarity>0) statsTable = ''
-            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name}`+(player.main.equipment[this.type()].forgeLevel?` +${player.main.equipment[this.type()].forgeLevel} `:" ")+ `${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
@@ -526,7 +602,7 @@ getExpBarStyle() {
                 if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
+                    statsTable+=`<span style="font-size:10px"> ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})</span>`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -591,7 +667,7 @@ getExpBarStyle() {
             let stats = []
             let statsTable = ''
             if (data.rarity>0) statsTable = ''
-            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name}`+(player.main.equipment[this.type()].forgeLevel?` +${player.main.equipment[this.type()].forgeLevel} `:" ")+ `${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
@@ -599,7 +675,7 @@ getExpBarStyle() {
                 if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
+                    statsTable+=`<span style="font-size:10px"> ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})</span>`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -664,7 +740,7 @@ getExpBarStyle() {
             let stats = []
             let statsTable = ''
             if (data.rarity>0) statsTable = ''
-            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name}`+(player.main.equipment[this.type()].forgeLevel?` +${player.main.equipment[this.type()].forgeLevel} `:" ")+ `${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
@@ -672,7 +748,7 @@ getExpBarStyle() {
                 if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
+                    statsTable+=`<span style="font-size:10px"> ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})</span>`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -737,7 +813,7 @@ getExpBarStyle() {
             let stats = []
             let statsTable = ''
             if (data.rarity>0) statsTable = ''
-            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name}`+(player.main.equipment[this.type()].forgeLevel?` +${player.main.equipment[this.type()].forgeLevel} `:" ")+ `${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
@@ -745,7 +821,7 @@ getExpBarStyle() {
                 if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
+                    statsTable+=`<span style="font-size:10px"> ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})</span>`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -810,7 +886,7 @@ getExpBarStyle() {
             let stats = []
             let statsTable = ''
             if (data.rarity>0) statsTable = ''
-            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name}`+(player.main.equipment[this.type()].forgeLevel?` +${player.main.equipment[this.type()].forgeLevel} `:" ")+ `${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
@@ -818,7 +894,7 @@ getExpBarStyle() {
                 if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
+                    statsTable+=`<span style="font-size:10px"> ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})</span>`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -883,7 +959,7 @@ getExpBarStyle() {
             let stats = []
             let statsTable = ''
             if (data.rarity>0) statsTable = ''
-            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name}`+(player.main.equipment[this.type()].forgeLevel?` +${player.main.equipment[this.type()].forgeLevel} `:" ")+ `${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
@@ -891,7 +967,7 @@ getExpBarStyle() {
                 if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
+                    statsTable+=`<span style="font-size:10px"> ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})</span>`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -956,7 +1032,7 @@ getExpBarStyle() {
             let stats = []
             let statsTable = ''
             if (data.rarity>0) statsTable = ''
-            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name}`+(player.main.equipment[this.type()].forgeLevel?` +${player.main.equipment[this.type()].forgeLevel} `:" ")+ `${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
@@ -964,7 +1040,7 @@ getExpBarStyle() {
                 if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
+                    statsTable+=`<span style="font-size:10px"> ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})</span>`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -1029,7 +1105,7 @@ getExpBarStyle() {
             let stats = []
             let statsTable = ''
             if (data.rarity>0) statsTable = ''
-            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            if (data.rarity>0) table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name}`+(player.main.equipment[this.type()].forgeLevel?` +${player.main.equipment[this.type()].forgeLevel} `:" ")+ `${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale==undefined?"-":data.strength_scale} | Живучесть: ${data.vitality_scale==undefined?"-":data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale==undefined?"-":data.agility_scale} | Мудрость: ${data.intelligence_scale==undefined?"-":data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`
@@ -1037,7 +1113,7 @@ getExpBarStyle() {
                 if (data[i]>0&&(!exclude.includes(i))) {
                     stats.push([i])
                     if (stats.length%2!=0) statsTable +=`| `
-                    statsTable+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}`
+                    statsTable+=`<span style="font-size:10px"> ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})</span>`:``}`
                     if (stats.length%2!=0) statsTable +=` |`
                     
                     if (stats.length%2==0) statsTable+=' |<br>'
@@ -1080,8 +1156,36 @@ getExpBarStyle() {
         }
     },
         },
-
     },
+buyables: {
+    11: {
+        cost(x) { return new Decimal(0).mul(x) },
+        display() { return "<h5>Усилить экипировку в данном слоте</h5>" },
+        unlocked() {return player.main.checkToggleSlotId!=''},
+        canAfford() { return player[this.layer].points.gte(this.cost()) },
+        buy() {
+            player[this.layer].points = player[this.layer].points.sub(this.cost())
+            setBuyableAmount(this.layer, this.id, getBuyableAmount(this.layer, this.id).add(1))
+            let data = player.main.equipment[tmp.main.clickables[player.main.checkToggleSlotId].type]
+            data.forgeRarity = data.rarity
+            data.forgeMult = getNextForgeMult(player.main.checkToggleSlotId)
+            data.forgeLevel = data.forgeLevel.add(1)
+        },
+        style() {
+            return {
+                'width':'205px',
+                'height':'50px',
+                'border':'4px solid rgba(182, 150, 96, 1)',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background':'#0f0f0f',
+            }
+        },
+    },
+},
     //Инвентарь
     grid: {
         rows: 6, 
@@ -1213,7 +1317,7 @@ getExpBarStyle() {
 		},
             "Inventory": {
                 content:[
-                ["blank",['60px','150px']],
+                ["blank",['40px','160px']],
                 ['row',[
                 ['column', [['display-text',function() {
                     let table = ''
@@ -1233,11 +1337,23 @@ getExpBarStyle() {
 		},
             "Forge": {
                 content:[
-                ["column", [
-                "blank",
-                    ]
+                ["blank",['40px','160px']],
+                ['row',[
+                ['column', [['display-text',function() {
+                    let table = ''
+                       if (player.main.checkToggleSlotId!='') {
+                        let currentMult = player.main.equipment[tmp.main.clickables[player.main.checkToggleSlotId].type].forgeMult-1
+                        let currentForgeLevel = player.main.equipment[tmp.main.clickables[player.main.checkToggleSlotId].type].forgeLevel
+                        table = `<span style='font-size:12px'>Множитель усиления экипировки:<br> [+${format(currentForgeLevel,0)}] - 
+                        ${format(currentMult*100,2)}% → 
+                        <span style='color:lime'>[+${format(currentForgeLevel.add(1),0)}]
+                        - ${format((getNextForgeMult(player.main.checkToggleSlotId)-1)*100,2)}%</span> <br>Прирост множителя: <span style='color:lime'>
+                        (+${format(((getNextForgeMult(player.main.checkToggleSlotId)-1)-currentMult)*100,2)}%, x${format(((currentMult==0?(getNextForgeMult(player.main.checkToggleSlotId)):(getNextForgeMult(player.main.checkToggleSlotId)-1)/(currentMult))),2)})</span></span></span>`}
+                    return `<h3>Множитель усиления</h3><hr><br>`+table}],"blank", "buyables"], {'margin-right':'40px'}],
+                    ['v-line', ['200px'], {'margin-left':'-20px'}],
+                    getSlotDisplay()
+                ]],
                 ]
-         ]
 		},
             "Prestige": {
                 content:[
@@ -1249,6 +1365,7 @@ getExpBarStyle() {
 		},
     },
     update(diff) {
+        updateSlotStats()
         player.main.character.exp =  player.main.character.exp.add(new Decimal(5).times(diff))
         if (player.main.character.exp.gte(tmp.main.getNextLevelReq)) {
             player.main.character.level = player.main.character.level.add(1)
