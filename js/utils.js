@@ -125,6 +125,13 @@ function clickGrid(layer, id) {
 
 	gridRun(layer, 'onClick', player[layer].grid[id], id)
 }
+function clickSkillGrid(layer, id) {
+	if (!player[layer].unlocked  || tmp[layer].deactivated) return
+	if (!run(layers[layer].grid.getUnlocked, layers[layer].skill_grid, id)) return
+	if (!skillGridRun(layer, 'getCanClick', player[layer].skill_grid[id], id)) return
+
+	skillGridRun(layer, 'onClick', player[layer].skill_grid[id], id)
+}
 
 // Function to determine if the player is in a challenge
 function inChallenge(layer, id) {

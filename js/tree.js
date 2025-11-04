@@ -27,9 +27,13 @@ addLayer("tree-tab", {
                 ['row',[
                     ["display-text", function() {return `<div style='background-color: red; border: 2px solid white; width: 150px; height:20px'>${format(player.main.character.healthPoints,2)}/${format(getMaxPlayerHP(),2)}</div>
                     <p><div style='background-color: blue; border: 2px solid white; width: 100px; height:20px'>Player MP</div><br>
-                    <div style='background-color: lime; width: 100px; height:2px'></div>`}],
+                    <div style='background:linear-gradient(to right, lime ${(player.main.cooldowns.attackCooldown/(getPlayerAttackSpeed()))*100}%, grey 1px); width: 100px; height:2px'></div>`}],
                 ['blank',['750px','50px']],
-                ["display-text", function() {return `<div style='background-color: red; border: 2px solid white; width: 150px; height:20px'>${format(player.main.floor.monster.healthPoints,2)}/${format(getMaxEnemyHP(),2)}</div>
+                ["display-text", function() {
+                    let debuffs = ``
+                    if (player.main.cooldowns.burningMax>=1) debuffs+=`<div>Fire: ${player.main.cooldowns.burningMax}</div><br>`
+                    return debuffs+`
+                    <div style='background-color: red; border: 2px solid white; width: 150px; height:20px'>${format(player.main.floor.monster.healthPoints,2)}/${format(getMaxEnemyHP(),2)}</div>
                     <p><div style='background-color: blue; border: 2px solid white; width: 100px; height:20px'>Enemy MP</div><br>
                     <div style='background-color: lime; width: 100px; height:2px'></div>`}]]]
                 ],

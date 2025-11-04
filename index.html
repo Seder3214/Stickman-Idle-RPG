@@ -115,11 +115,11 @@
 					<particle :data="particle" :index="index" v-bind:key="'b' + particle.id"></particle>
 				</div>
 		</div>
-		<div v-bind:style="tmp.other.splitScreen?{'left':'50%'}:{'left':'0%'}" v-if="player.navTab !== 'none' && player.tab !== 'none' && !(tmp.gameEnded && !player.keepGoing)" onscroll="resizeCanvas()" v-bind:class="{ fullWidth: player.navTab == 'none' || !tmp.other.splitScreen || !readData(layoutInfo.showTree), col: player.navTab != 'none', right: player.navTab != 'none', fast: true, tab: true}">
+		<div style="background-image:url(resources/background.jpg);background-repeat:auto; background-position:center"v-bind:style="tmp.other.splitScreen?{'left':'60%'}:{'left':'0%'}" v-if="player.navTab !== 'none' && player.tab !== 'none' && !(tmp.gameEnded && !player.keepGoing)" onscroll="resizeCanvas()" v-bind:class="{ fullWidth: player.navTab == 'none' || !tmp.other.splitScreen || !readData(layoutInfo.showTree), col: player.navTab != 'none', right: player.navTab != 'none', fast: true, tab: true}">
 			
-			<div v-for="layer in LAYERS">
+			<div v-for="layer in LAYERS" >
 				<div v-if="player.tab==layer">
-					<layer-tab :layer="layer" :back="'none'" :spacing="'50px'" :key="'left'"></layer-tab>
+					<layer-tab style='margin-left: -30%;':layer="layer" :back="'none'" :spacing="'50px'" :key="'left'"></layer-tab>
 				</div>
 			</div>
 			<bg :layer="player.tab" ></bg>

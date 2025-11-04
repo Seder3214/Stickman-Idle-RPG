@@ -448,7 +448,7 @@ Vue.component('skill_grid', {
 		v-if="tmp[layer].skill_grid && player[layer].skill_grid[data]!== undefined && run(layers[layer].skill_grid.getUnlocked, layers[layer].skill_grid, data)" 
 		v-bind:class="{ tile: true, can: canClick, locked: !canClick, tooltipBox: true,}"
 		v-bind:style="[canClick ? {'background-color': tmp[layer].color} : {}, skillGridRun(layer, 'getStyle', player[this.layer].skill_grid[this.data], this.data)]"
-		v-on:click="clickGrid(layer, data)"  @mousedown="start" @mouseleave="stop" @mouseup="stop" @touchstart="start" @touchend="stop" @touchcancel="stop">
+		v-on:click="clickSkillGrid(layer, data)"  @mousedown="start" @mouseleave="stop" @mouseup="stop" @touchstart="start" @touchend="stop" @touchcancel="stop">
 			<span v-if= "layers[layer].skill_grid.getTitle"><h3 v-html="skillGridRun(this.layer, 'getTitle', player[this.layer].skill_grid[this.data], this.data)"></h3><br></span>
 			<span v-bind:style="{'white-space': 'pre-line'}" v-html="skillGridRun(this.layer, 'getDisplay', player[this.layer].skill_grid[this.data], this.data)"></span>
 			<tooltip v-if="layers[layer].skill_grid.getTooltip" :text="skillGridRun(this.layer, 'getTooltip', player[this.layer].skill_grid[this.data], this.data)" v-bind:style="skillGridRun(layer, 'getTooltipStyle', player[this.layer].skill_grid[this.data], this.data)"></tooltip>

@@ -121,14 +121,15 @@ function getSkills(id) {
         {skill_name:'Быстрый взмах', skill_image:'rapid_strike', damage:0.63,bloodlust:3, cooldown:0.365, rarity:1, level:0},
         {skill_name:'Выпад щитом', skill_image:'shield_attack', damage:2.06+(Math.log10(player_strength+1)), defense_buff:1.1, cooldown:5.3, rarity:1, level:0},
         {skill_name:'Двойной разрез', skill_image:'double_attack', damage:(0.5+(Math.log2(player_agility+1)-1))*2, cooldown:2.73, rarity:1, level:0},
-        {skill_name:'Огненный удар', skill_image:'fire_sword', damage:0,fire:3,fire_tickdamage: (0.5+(player_intelligence**0.35)), cooldown:3.06, rarity:2, level:0},
+        {skill_name:'Огненный удар', skill_image:'fire_sword', damage:0,fire:3,fire_tickdamage: (0.5+(player_intelligence**0.35)), cooldown:6.06, rarity:2, level:0},
     ]
     return skills[id]
 }
 function getPlayerAttackSpeed() {
+    let totalSpeed = 0
     let weaponSpeed = 1/getSlotBuffs().speed
     let skillCooldown = player.main.character.skill.cooldown
-    let totalSpeed = weaponSpeed+skillCooldown
+    if (weaponSpeed&&skillCooldown) totalSpeed = weaponSpeed*skillCooldown
     return totalSpeed
 }
 function getLevelMultipliers(className='') {
@@ -342,7 +343,7 @@ function getPlayerStats(stat, value, bonus) {
         case 'add_agility': return `<div class='statDiv'>Ловкость:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_agility,2)} | x${format(1,2)}</div>`; break
         case 'add_intelligence': return `<div class='statDiv'>Мудрость:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_intelligence,2)} | x${format(1,2)}</div>`; break
         case 'attack': return `<div class='statDiv'>Атака:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)} (${format(getSlotBuffs()['scaled_attack'],2)})</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
-        case 'speed': return `<div class='statDiv'>Скорость атаки:</div><div class='statDiv'>${format(value!=undefined?value/1:0,2)}/сек</div><div class='statDiv'>
+        case 'speed': return `<div class='statDiv'>Скорость атаки:</div><div class='statDiv'>${format(player.main.character.skill.cooldown?player.main.character.skill.cooldown:0,2)}/сек</div><div class='statDiv'>
         ${format(bonus!=0?bonus/1:0,2)}/сек</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
         case 'defense': return `<div class='statDiv'>Защита:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)} (${format(getSlotBuffs()['scaled_defense'],2)})</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
         case 'luck': return `<div class='statDiv'>Удача:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)} (${format(getSlotBuffs()['scaled_luck'],2)})</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_luck,2)} | x${format(1,2)}</div>`; break
@@ -1275,6 +1276,9 @@ buyables: {
             return true
         },
         onClick(data, id) { 
+            if (data.duplicates>=5) {
+                data.duplicates-=5
+                data.level+=1}
             },
         onHold(data, id) {
             if (data.level>=0||id==101)setTimeout(player.main.character.skill = this.getSkillData(id),3000)
@@ -1315,28 +1319,28 @@ buyables: {
              if (player.main.character.skill.skill_name==this.getSkillData(id).skill_name) return {
                 'width':'75px',
                 'height':'75px',
-                'border':`1px solid`,
+                'border':`3px solid`,
                 'border-color':'gold',
                 'border-radius':'0',
                 'background-repeat': 'no-repeat',
                 'background-position': '50% 50%',
                 'color':'white',
                 'font-size':'16px',
-                'background-color':'rgba(29, 29, 29, 1)',
+                'background-color':'#231D11',
                 'padding-block':'0px',
                 'padding-inline':'0px',            
             }
            return {
                 'width':'75px',
                 'height':'75px',
-                'border':`1px solid`,
+                'border':`3px solid`,
                 'border-color':getRariryColor(this.getSkillData(id).rarity),
                 'border-radius':'0',
                 'background-repeat': 'no-repeat',
                 'background-position': '50% 50%',
                 'color':'white',
                 'font-size':'16px',
-                'background-color':'rgba(29, 29, 29, 1)',
+                'background-color':'#231D11',
                 'padding-block':'0px',
                 'padding-inline':'0px',
             }
@@ -1455,11 +1459,11 @@ buyables: {
  getTooltipStyle(data,id) {
                return{
                         'border':'4px solid transparent',
-                        'border-image':'linear-gradient(to right, rgba(182, 150, 96, 1) 0%, rgba(235, 194, 122, 1) 50%,rgba(182, 150, 96, 1) 100%)',
+                        'border-image':'url(resources/border.png)',
                         'background':'#0f0f0f',
                         'width':'225px',
                         'font-size':'12px',
-                        'border-image-slice': '1'
+                        'border-image-slice': '10%'
                     };
                 }
         },
@@ -1479,7 +1483,9 @@ buyables: {
                     for (i in inventory) {
                         if (!exclude.includes(i)) table+=` ${getPlayerStats(i, playerData[i], inventory[i])}<br>`
                     }
-                    return `<div class='statDiv'><h2>Уровень персонажа - [${player.main.character.level}]</h2></div><br><h3>Характеристики персонажа</h3><hr><br><div class='statDiv'>Хар-ка</div><div class='statDiv'>Персонаж</div><div class='statDiv'>Экипировка</div><div class='statDiv'>Множ. от уровня/карт улучшения</div><br>`+table}]]],
+                    return `<div class='statDiv' style='padding: 5px 5px 5px 5px; border:3px solid transparent; border-image: url(resources/border.png); border-image-slice:20%''><h2>Уровень персонажа - [${player.main.character.level}]</h2></div><br><br>
+                    <br><div style='border: 4px solid transparent;border-image: url(resources/border.png); border-image-slice:20%''>
+                    <div class='statDiv'>Хар-ка</div><div class='statDiv'>Персонаж</div><div class='statDiv'>Экипировка</div><div class='statDiv'>Множ. от уровня/карт улучшения</div><br>`+table+"</div>"}]]],
                 ]
 		},
             "Skills": {
@@ -1494,7 +1500,7 @@ buyables: {
 		},
             "Inventory": {
                 content:[
-                ["blank",['40px','160px']],
+                ["blank",['40px','120px']],
                 ['row',[
                 ['column', [['display-text',function() {
                     let table = ''
@@ -1503,8 +1509,8 @@ buyables: {
                     for (i in data) {
                         if (data[i]>0&&(!exclude.includes(i))) table+=` ${getStatName(i, data[i])} ${data[`scaled_${i}`]?`(+${format(data[`scaled_${i}`],2)})`:``}<br>`
                     }
-                    return `<h3>Бонусы от экипировки</h3><hr>`+(table!=''?table:`<span style='color:rgba(84, 84, 84, 1); font-size:12px'>Оденьте снаряжение для получения бонусов.</span>`)}]], {'margin-right':'40px'}],
-                    ['v-line', ['200px'], {'margin-left':'-20px'}],
+                    return `<div style='background-color: #000000b2; padding: 5px 5px 5px 5px; border:3px solid transparent; border-image: url(resources/border.png); border-image-slice:20%'><h4>Бонусы экипировки</h4><hr>`+(table!=''?table:`<span style='color:rgba(84, 84, 84, 1); font-size:12px'>Оденьте снаряжение для получения бонусов.</span></div>`)}]], {'margin-right':'40px'}],
+                    ['v-line', ['200px'], {'margin-left':'-20px', 'border-color':'rgba(235, 194, 122, 1)'}],
                     getSlotDisplay()
                 ]],
                 "blank",
@@ -1526,8 +1532,9 @@ buyables: {
                         <span style='color:lime'>[+${format(currentForgeLevel.add(1),0)}]
                         - ${format((getNextForgeMult(player.main.checkToggleSlotId)-1)*100,2)}%</span> <br>Прирост множителя: <span style='color:lime'>
                         (+${format(((getNextForgeMult(player.main.checkToggleSlotId)-1)-currentMult)*100,2)}%, x${format(((currentMult==0?(getNextForgeMult(player.main.checkToggleSlotId)):(getNextForgeMult(player.main.checkToggleSlotId)-1)/(currentMult))),2)})</span></span></span>`}
-                    return `<h3>Множитель усиления</h3><hr><br>`+table}],"blank", "buyables"], {'margin-right':'40px'}],
-                    ['v-line', ['200px'], {'margin-left':'-20px'}],
+                    return `<div style='background-color: #000000b2; padding: 5px 5px 5px 5px; border:3px solid transparent; border-image: url(resources/border.png); border-image-slice:20%'>
+                    <h3>Множитель усиления</h3><hr>`+table+"</div>"}],"blank", "buyables"], {'margin-right':'40px'}],
+                    ['v-line', ['200px'], {'margin-left':'-20px', 'border-color':'rgba(235, 194, 122, 1)'}],
                     getSlotDisplay()
                 ]],
                 ]
@@ -1548,8 +1555,8 @@ buyables: {
         if (player.main.character.healthPoints.lte(0))player.main.character.healthPoints = new Decimal(getMaxPlayerHP())
         if (player.main.floor.monster.healthPoints.lte(0))player.main.floor.monster.healthPoints = new Decimal(getMaxEnemyHP())
         player.main.character.exp =  player.main.character.exp.add(new Decimal(5).times(diff))
-        player.main.cooldowns.attackCooldown+=diff
-        if (player.main.cooldowns.burntCooldown>=1) {
+        if (getPlayerAttackSpeed()>0)player.main.cooldowns.attackCooldown+=diff
+        if (player.main.cooldowns.burntCooldown>=1&&player.main.cooldowns.burningMax>0) {
             updateEnemyCurrentHP(getTotalAttack())
             player.main.cooldowns.burntCooldown=0
             player.main.cooldowns.burningMax -= 1
