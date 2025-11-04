@@ -47,7 +47,8 @@
 		</div>
 		<button v-if="tmp.other.splitScreen" class="backButton" style="background: url('resources/button_inventory-2.png'); background-repeat: no-repeat; background-position: 50% 50%;" onclick="setSubtab('inv')" ></button>	
 		<button v-if="tmp.other.splitScreen" class="backButton" style="background: url('resources/button_empty.png'); background-repeat: no-repeat; background-position: 50% 50%;top:70% "onclick="setSubtab('player')" >P</button>	
-		<button v-if="tmp.other.splitScreen" class="backButton"style="background: url('resources/button_empty.png'); background-repeat: no-repeat; background-position: 50% 50%;top:60%" onclick="setSubtab('forge')">F</button>	
+		<button v-if="tmp.other.splitScreen" class="backButton"style="background: url('resources/button_empty.png'); background-repeat: no-repeat; background-position: 50% 50%;top:60%" onclick="setSubtab('skill')">S</button>
+		<button v-if="tmp.other.splitScreen" class="backButton"style="background: url('resources/button_empty.png'); background-repeat: no-repeat; background-position: 50% 50%;top:50%" onclick="setSubtab('forge')">F</button>	
 		<div v-bind:style="" class="vl" v-if="player.navTab !== 'none' && tmp.other.splitScreen && player.tab!='none' && !(tmp.gameEnded && !player.keepGoing)">
 		</div>
 		<div v-if="(tmp.gameEnded && !player.keepGoing)" class="fullWidth">

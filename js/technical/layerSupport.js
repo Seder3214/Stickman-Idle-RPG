@@ -171,6 +171,14 @@ function setupLayer(layer){
             layers[layer].grid.getCanClick = true
 
     }
+    if (layers[layer].skill_grid) {
+        layers[layer].skill_grid.layer = layer
+        if (layers[layer].skill_grid.getUnlocked === undefined)
+            layers[layer].skill_grid.getUnlocked = true
+        if (layers[layer].skill_grid.getCanClick === undefined)
+            layers[layer].skill_grid.getCanClick = true
+
+    }
     if (layers[layer].startData) {
         data = layers[layer].startData()
         if (data.best !== undefined && data.showBest === undefined) layers[layer].showBest = true

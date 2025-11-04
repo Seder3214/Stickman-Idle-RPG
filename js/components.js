@@ -447,25 +447,27 @@ Vue.component('skill_grid', {
 		<button 
 		v-if="tmp[layer].skill_grid && player[layer].skill_grid[data]!== undefined && run(layers[layer].skill_grid.getUnlocked, layers[layer].skill_grid, data)" 
 		v-bind:class="{ tile: true, can: canClick, locked: !canClick, tooltipBox: true,}"
-		v-bind:style="[canClick ? {'background-color': tmp[layer].color} : {}, gridRun(layer, 'getStyle', player[this.layer].grid[this.data], this.data)]"
+		v-bind:style="[canClick ? {'background-color': tmp[layer].color} : {}, skillGridRun(layer, 'getStyle', player[this.layer].skill_grid[this.data], this.data)]"
 		v-on:click="clickGrid(layer, data)"  @mousedown="start" @mouseleave="stop" @mouseup="stop" @touchstart="start" @touchend="stop" @touchcancel="stop">
-			<span v-if= "layers[layer].skill_grid.getTitle"><h3 v-html="gridRun(this.layer, 'getTitle', player[this.layer].skill_grid[this.data], this.data)"></h3><br></span>
-			<span v-bind:style="{'white-space': 'pre-line'}" v-html="gridRun(this.layer, 'getDisplay', player[this.layer].skill_grid[this.data], this.data)"></span>
-			<tooltip v-if="layers[layer].skill_grid.getTooltip" :text="gridRun(this.layer, 'getTooltip', player[this.layer].skill_grid[this.data], this.data)" v-bind:style="gridRun(layer, 'getTooltipStyle', player[this.layer].skill_grid[this.data], this.data)"></tooltip>
-
+			<span v-if= "layers[layer].skill_grid.getTitle"><h3 v-html="skillGridRun(this.layer, 'getTitle', player[this.layer].skill_grid[this.data], this.data)"></h3><br></span>
+			<span v-bind:style="{'white-space': 'pre-line'}" v-html="skillGridRun(this.layer, 'getDisplay', player[this.layer].skill_grid[this.data], this.data)"></span>
+			<tooltip v-if="layers[layer].skill_grid.getTooltip" :text="skillGridRun(this.layer, 'getTooltip', player[this.layer].skill_grid[this.data], this.data)" v-bind:style="skillGridRun(layer, 'getTooltipStyle', player[this.layer].skill_grid[this.data], this.data)"></tooltip>
+		<div v-bind:style="skillGridRun(this.layer, 'getProgressStyle', player[this.layer].skill_grid[this.data], this.data)">
+		<span v-html="skillGridRun(layer, 'getProgress', player[this.layer].skill_grid[this.data], this.data)"></span>
+		</div>
 		</button>
 		`,
 		data() { return { interval: false, time: 0,}},
 		computed: {
 			canClick() {
-				return gridRun(this.layer, 'getCanClick', player[this.layer].skill_grid[this.data], this.data)}
+				return skillGridRun(this.layer, 'getCanClick', player[this.layer].skill_grid[this.data], this.data)}
 		},
 		methods: {
 			start() {
 				if (!this.interval && layers[this.layer].skill_grid.onHold) {
 					this.interval = setInterval((function() {
-						if(this.time >= 5 && gridRun(this.layer, 'getCanClick', player[this.layer].skill_grid[this.data], this.data)) {
-							gridRun(this.layer, 'onHold', player[this.layer].skill_grid[this.data], this.data)						}	
+						if(this.time >= 5 && skillGridRun(this.layer, 'getCanClick', player[this.layer].skill_grid[this.data], this.data)) {
+							skillGridRun(this.layer, 'onHold', player[this.layer].skill_grid[this.data], this.data)						}	
 						this.time = this.time+1
 					}).bind(this), 50)}
 			},
@@ -707,6 +709,7 @@ Vue.component('skill_grid', {
 			ctrlDown,
 			run,
 			gridRun,
+			skillGridRun,
 		},
 	})
 }
