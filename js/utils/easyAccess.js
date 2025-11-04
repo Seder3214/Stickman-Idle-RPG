@@ -57,6 +57,13 @@ function getGridData(layer, id) {
 function setGridData(layer, id, data) {
 	player[layer].grid[id] = data
 }
+function getSkillGridData(layer, id) {
+	return (player[layer].skill_grid[id])
+}
+
+function setSkillGridData(layer, id, data) {
+	player[layer].skill_grid[id] = data
+}
 
 function upgradeEffect(layer, id) {
 	return (tmp[layer].upgrades[id].effect)

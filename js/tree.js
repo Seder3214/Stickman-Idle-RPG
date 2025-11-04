@@ -25,11 +25,11 @@ addLayer("tree-tab", {
                     return table}],
                 "blank",
                 ['row',[
-                    ["display-text", function() {return `<div style='background-color: red; border: 2px solid white; width: 100px; height:20px'>Player HP</div>
+                    ["display-text", function() {return `<div style='background-color: red; border: 2px solid white; width: 150px; height:20px'>${format(player.main.character.healthPoints,2)}/${format(getMaxPlayerHP(),2)}</div>
                     <p><div style='background-color: blue; border: 2px solid white; width: 100px; height:20px'>Player MP</div><br>
                     <div style='background-color: lime; width: 100px; height:2px'></div>`}],
                 ['blank',['750px','50px']],
-                ["display-text", function() {return `<div style='background-color: red; border: 2px solid white; width: 100px; height:20px'>Enemy HP</div>
+                ["display-text", function() {return `<div style='background-color: red; border: 2px solid white; width: 150px; height:20px'>${format(player.main.floor.monster.healthPoints,2)}/${format(getMaxEnemyHP(),2)}</div>
                     <p><div style='background-color: blue; border: 2px solid white; width: 100px; height:20px'>Enemy MP</div><br>
                     <div style='background-color: lime; width: 100px; height:2px'></div>`}]]]
                 ],

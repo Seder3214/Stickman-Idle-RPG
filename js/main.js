@@ -31,7 +31,15 @@ function updateSlotStats() {
         }
     }
 }
-
+function getStageRewards() {
+    let monstersOnStage = player.main.floor.monsters
+    let stage = new Decimal(player.main.floor.floorNumber)
+    let level = new Decimal(player.main.floor.floorLvl)
+    let luck = new Decimal(getFullStat('luck')).add(1)
+    let gold = new Decimal(1.15).mul(stage.mul(level)).mul(monstersOnStage).pow(new Decimal(1).add(luck.max(1).log10()))
+    let exp = new Decimal(0.5).mul(stage.mul(level).mul(1.5)).pow(1.1).mul(monstersOnStage).pow(luck.max(1).log2().pow(0.55))
+    return {gold:gold,exp:exp}
+}
 //Функция для вывода редкости
 function getRarityName(rarity) {
     switch(rarity) {
@@ -46,33 +54,82 @@ function getRarityName(rarity) {
         case 8: return '(Секретный)'; break
     }
 }
+function getRariryColor(rarity) {
+       switch(rarity) {
+        case 0: return 'rgba(75, 75, 75, 1)'; break
+        case 1: return 'rgba(156, 156, 156, 1)'; break
+        case 2: return 'rgba(7, 206, 0, 1)'; break
+        case 3: return 'rgba(25, 0, 255, 1)'; break
+        case 4: return 'rgba(255, 0, 242, 1)'; break
+        case 5: return 'rgba(255, 183, 0, 1)'; break
+        case 6: return 'rgba(255, 98, 0, 1)'; break
+        case 7: return 'rgba(255, 0, 0, 1)'; break
+        case 8: return 'rgba(0, 238, 255, 1)'; break
+    } 
+}
 function excludeStats() {
 let scaled_stats = ['rarity','scaled_attack','scaled_defense','scaled_luck','forgeMult', 'forgeLevel','forgeRarity']
     return scaled_stats
 }
 function getFullStat(stat) {
-    let fullstat = (player.main.character[`${stat}`].toNumber()+(getSlotBuffs()[`add_${stat}`]?getSlotBuffs()[`add_${stat}`]:0))*player.main.character[`multi_${stat}`]
+    let fullstat = (player.main.character[`${stat}`].toNumber()+(getSlotBuffs()[`add_${stat}`]?getSlotBuffs()[`add_${stat}`]:getSlotBuffs()[`${stat}`]?getSlotBuffs()[`${stat}`]:0))*player.main.character[`multi_${stat}`]
     return fullstat
+}
+function getMaxPlayerHP() {
+    let level = player.main.character.level
+    let baseVitScale = new Decimal(10)
+    let vitality = new Decimal(getFullStat('vitality')).add(1)
+    return new Decimal(100).add(vitality.mul(baseVitScale)).mul(level.add(1).log(2))
+}
+function updateCurrentHP(value) {
+    player.main.character.healthPoints = new Decimal(player.main.character.healthPoints.sub(value).max(0))
+}
+function getMaxEnemyHP() {
+    let stage = new Decimal(player.main.floor.floorNumber)
+    let level = new Decimal(player.main.floor.currentMonster)
+    let monsterLevel = new Decimal(player.main.floor.monster.level)
+    return new Decimal(100).mul(new Decimal(2).pow(level.pow(0.95))).mul(monsterLevel.div(2).add(0.5)).mul(new Decimal(3.546).pow(stage))
+}
+function updateEnemyCurrentHP(value) {
+    player.main.floor.monster.healthPoints = player.main.floor.monster.healthPoints.sub(value)
+}
+function getTotalAttack() {
+    let slotAttack = getSlotBuffs().attack
+    let scaleAttack = player.main.equipment.primary_weapon.scaled_attack   
+    let totalAttack = slotAttack+scaleAttack
+    if (player.main.character.skill.damage) totalAttack = totalAttack*(player.main.character.skill.damage)
+    if (player.main.character.skill.fire_tickdamage) totalAttack = totalAttack*(player.main.character.skill.fire_tickdamage)  
+    if (!isNaN(slotAttack)&&!isNaN(scaleAttack))return totalAttack
+    else return new Decimal(0)
 }
 function getNextForgeMult(id) {
     let data = player.main.equipment[tmp.main.clickables[player.main.checkToggleSlotId].type]
+    let type = tmp.main.clickables[player.main.checkToggleSlotId].type
     let level = data.forgeLevel.add(1)
-    let eff = new Decimal(0.15).mul(level)
+    let scaleTypes = ['necklace','ring_1','ring_2','bracelet']
+    let eff = new Decimal(scaleTypes.includes(type)?0.015:0.15).mul(level)
     eff = eff.mul(level.div(10).add(1)).mul(level.sqrt().div(10).add(1))
     return eff.add(1).pow(data.rarity).max(1)
 }
-function getWarriorSkills(id) {
+function getSkills(id) {
     let player_vitality = (player.main.character['vitality'].toNumber()+(getSlotBuffs()[`add_vitality`]?getSlotBuffs()[`add_vitality`]:0))*player.main.character[`multi_vitality`]
     let player_strength = (player.main.character['strength'].toNumber()+(getSlotBuffs()[`add_strength`]?getSlotBuffs()[`add_strength`]:0))*player.main.character[`multi_strength`]
     let player_agility = (player.main.character['agility'].toNumber()+(getSlotBuffs()[`add_agility`]?getSlotBuffs()[`add_agility`]:0))*player.main.character[`multi_agility`]
     let player_intelligence = (player.main.character['intelligence'].toNumber()+(getSlotBuffs()[`add_intelligence`]?getSlotBuffs()[`add_intelligence`]:0))*player.main.character[`multi_intelligence`]
     let skills = [
-        {skill_name:'Быстрый взмах', skill_image:'rapid_strike', damage:0.63,bloodlust:3, cooldown:1.25, rarity:1, level:0},
-        {skill_name:'Выпад щитом', skill_image:'shield_attack', damage:2.06+(Math.log10(player_strength)-1), defense_buff:1.1, cooldown:5.3, rarity:1, level:0},
-        {skill_name:'Двойной разрез', skill_image:'double_attack', damage:(1.25+(Math.log2(player_agility)-1))*2, cooldown:2.73, rarity:1, level:0},
-        {skill_name:'Огненный удар', skill_image:'fire_sword', damage:0,fire:3,fire_tickdamage: (player_intelligence**0.55), cooldown:2.73, rarity:2, level:0},
+        {skill_name:'Простой удар', skill_image:'basic_attack', damage:1, cooldown:1, rarity:0, level:0},
+        {skill_name:'Быстрый взмах', skill_image:'rapid_strike', damage:0.63,bloodlust:3, cooldown:0.365, rarity:1, level:0},
+        {skill_name:'Выпад щитом', skill_image:'shield_attack', damage:2.06+(Math.log10(player_strength+1)), defense_buff:1.1, cooldown:5.3, rarity:1, level:0},
+        {skill_name:'Двойной разрез', skill_image:'double_attack', damage:(0.5+(Math.log2(player_agility+1)-1))*2, cooldown:2.73, rarity:1, level:0},
+        {skill_name:'Огненный удар', skill_image:'fire_sword', damage:0,fire:3,fire_tickdamage: (0.5+(player_intelligence**0.35)), cooldown:3.06, rarity:2, level:0},
     ]
     return skills[id]
+}
+function getPlayerAttackSpeed() {
+    let weaponSpeed = 1/getSlotBuffs().speed
+    let skillCooldown = player.main.character.skill.cooldown
+    let totalSpeed = weaponSpeed+skillCooldown
+    return totalSpeed
 }
 function getLevelMultipliers(className='') {
     let baseMulti = [new Decimal(1),new Decimal(1),new Decimal(1),new Decimal(1),new Decimal(1)]
@@ -224,6 +281,10 @@ player.subtabs[player.tab].mainTabs = 'Inventory'
         player.tab = 'main';
         player.subtabs[player.tab].mainTabs = 'Player';
         break
+        case 'skill':
+        player.tab = 'main';
+        player.subtabs[player.tab].mainTabs = 'Skills';
+        break
         case 'forge':
         player.tab = 'main';
         player.subtabs[player.tab].mainTabs = 'Forge';
@@ -261,7 +322,7 @@ function getEquipTypeName(type) {
 function getStatName(stat, value) {
     switch(stat) {
         case 'attack': return `Атака: +${format(value,0)}`; break
-        case 'speed': return `Скорость: ${format(1/value,2)}/сек`; break
+        case 'speed': return `Скорость: ${format(value/1,2)}/сек`; break
         case 'fire_attack': return `Огненный урон: +${format(value,0)}`; break
         case 'water_attack': return `Водный урон: +${format(value,0)}`; break
         case 'poison_attack': return `Отравление: +${format(value,0)}`; break
@@ -281,8 +342,8 @@ function getPlayerStats(stat, value, bonus) {
         case 'add_agility': return `<div class='statDiv'>Ловкость:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_agility,2)} | x${format(1,2)}</div>`; break
         case 'add_intelligence': return `<div class='statDiv'>Мудрость:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_intelligence,2)} | x${format(1,2)}</div>`; break
         case 'attack': return `<div class='statDiv'>Атака:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)} (${format(getSlotBuffs()['scaled_attack'],2)})</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
-        case 'speed': return `<div class='statDiv'>Скорость атаки:</div><div class='statDiv'>${format(value!=undefined?1/value:0,2)}/сек</div><div class='statDiv'>
-        ${format(bonus!=0?1/bonus:0,2)}/сек</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'speed': return `<div class='statDiv'>Скорость атаки:</div><div class='statDiv'>${format(value!=undefined?value/1:0,2)}/сек</div><div class='statDiv'>
+        ${format(bonus!=0?bonus/1:0,2)}/сек</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
         case 'defense': return `<div class='statDiv'>Защита:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)} (${format(getSlotBuffs()['scaled_defense'],2)})</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
         case 'luck': return `<div class='statDiv'>Удача:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)} (${format(getSlotBuffs()['scaled_luck'],2)})</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_luck,2)} | x${format(1,2)}</div>`; break
         case 'fire_attack': return `<div class='statDiv'>Огненный урон:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
@@ -349,9 +410,11 @@ addLayer("main", {
             totalGold:0,
             rarities: [0],
             monster: {
-                healthPoints: new Decimal(100),
+                healthPoints: new Decimal(0),
+                level: new Decimal(1),
+                currentHP: new Decimal(100),
                 manaPoints: new Decimal(100),
-                attack: 0,
+                attack: 10,
                 attack_speed:0,
                 attackBleed:0,
                 attackFire:0,
@@ -383,7 +446,8 @@ addLayer("main", {
             add_vitality:0, 
             add_agility:0,
             add_intelligence:0,
-            healthPoints: new Decimal(100),
+            currentHP: new Decimal(100),
+            healthPoints: new Decimal(0),
             manaPoints: new Decimal(100),
             vitality:new Decimal(0),
             strength:new Decimal(0),
@@ -399,10 +463,14 @@ addLayer("main", {
             crit_chance: new Decimal(0),
             level: new Decimal(1),
             exp: new Decimal(0),
+            skill: {},
         },
         cooldowns: {
-            slotUpdate: 1,
-            gridUpdate: 1,
+            attackCooldown: 0,
+            burntCooldown: 0,
+            bleedingTimer: 0,
+            poisonTimer: 0,
+            burningMax:0,
         }
     }},
     color: "white",
@@ -1170,6 +1238,7 @@ buyables: {
             data.forgeRarity = data.rarity
             data.forgeMult = getNextForgeMult(player.main.checkToggleSlotId)
             data.forgeLevel = data.forgeLevel.add(1)
+            getMaxPlayerHP(true)
         },
         style() {
             return {
@@ -1186,6 +1255,104 @@ buyables: {
         },
     },
 },
+    skill_grid: {
+        rows: 1, 
+        cols: 5,
+        getSkillData(id) {
+            let startDesc = getSkills(((id%10)-1)+((Math.floor(id/100)-1)*7))
+            if (getSkillGridData('main',id).level>0) {
+                startDesc.damage *= 1.15**getSkillGridData('main',id).level
+            }
+           return startDesc
+        },
+        getStartData(id) {
+            return {level:0,duplicates:0}
+        },
+        getUnlocked(id) { // Default
+            return true
+        },
+        getCanClick(data, id) {
+            return true
+        },
+        onClick(data, id) { 
+            },
+        onHold(data, id) {
+            if (data.level>=0||id==101)setTimeout(player.main.character.skill = this.getSkillData(id),3000)
+        },
+        getDisplay(data, id) {
+            if (data.level==0 && id!=101) return `<span style="font-size:28px; color:grey">🔒</span>`
+            return this.getSkillData(id).skill_name
+        },
+        getProgressStyle(data,id) {
+            return {
+                'position':'absolute',
+                'text-align':'top',
+                'bottom':'-20px',
+                'font-size':'14px',
+                'width':'100%',
+                'height':'15px',
+                'border-top': '1.5px solid transparent', 
+                'border-image': `linear-gradient(to right, rgba(164, 255, 167, 1) ${(data.duplicates/5)*100}%, rgba(62, 62, 62, 1) 0px)`, 
+                'border-image-slice':'1',
+                'background': `linear-gradient(to right,lime ${Math.min(80,Math.max(0,(data.duplicates/5)-0.2)*100)}%, rgba(120, 255, 124, 1) ${Math.min(100,(data.duplicates/5)*100)}%,  grey 0px)`,
+            }
+        },
+        getProgress(data,id) {
+            return `${format(data.duplicates,0)}/${format(5,0)}`
+        },
+        //Функция для текста в всплывалющем тултипе
+        getTooltip(data,id) {
+                        let descs= [
+                `Делает простой выпад, нанося ${format(this.getSkillData(id).damage*100)}% урона. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+                `Делает точный и быстрый взмах, нанося ${format(this.getSkillData(id).damage*100)}% урона. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+                `Делает выпад тяжелым щитом, нанося ${format(this.getSkillData(id).damage*100)}% урона. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+                `Делает два последовательных взмаха мечом, нанося ${format((this.getSkillData(id).damage/2)*100)}% урона за каждый удар. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+                `Делает взмах мечом, пылающим огнём, накладывая ожог противнику на ${format(this.getSkillData(id).fire) } секунд. Каждую секунду ожог будет наносить ${format((this.getSkillData(id).fire_tickdamage)*100)}% урона каждую секунду. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+            ]
+            return descs[((id%10)-1)+((Math.floor(id/100)-1)*7)]
+        },
+        getStyle(data, id) {
+             if (player.main.character.skill.skill_name==this.getSkillData(id).skill_name) return {
+                'width':'75px',
+                'height':'75px',
+                'border':`1px solid`,
+                'border-color':'gold',
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-color':'rgba(29, 29, 29, 1)',
+                'padding-block':'0px',
+                'padding-inline':'0px',            
+            }
+           return {
+                'width':'75px',
+                'height':'75px',
+                'border':`1px solid`,
+                'border-color':getRariryColor(this.getSkillData(id).rarity),
+                'border-radius':'0',
+                'background-repeat': 'no-repeat',
+                'background-position': '50% 50%',
+                'color':'white',
+                'font-size':'16px',
+                'background-color':'rgba(29, 29, 29, 1)',
+                'padding-block':'0px',
+                'padding-inline':'0px',
+            }
+            
+        },
+ getTooltipStyle(data,id) {
+               return{
+                        'border':'2px solid transparent',
+                        'border-color':getRariryColor(this.getSkillData(id).rarity),
+                        'background':'#0f0f0f',
+                        'width':'225px',
+                        'font-size':'12px',
+                        'border-image-slice': '1'
+                    };
+                }
+        },
     //Инвентарь
     grid: {
         rows: 6, 
@@ -1315,6 +1482,16 @@ buyables: {
                     return `<div class='statDiv'><h2>Уровень персонажа - [${player.main.character.level}]</h2></div><br><h3>Характеристики персонажа</h3><hr><br><div class='statDiv'>Хар-ка</div><div class='statDiv'>Персонаж</div><div class='statDiv'>Экипировка</div><div class='statDiv'>Множ. от уровня/карт улучшения</div><br>`+table}]]],
                 ]
 		},
+            "Skills": {
+                content:[
+                ["blank",['40px','100px']],
+                ["column", [
+                "blank",
+                "skill_grid"
+                    ]
+                ]
+         ]
+		},
             "Inventory": {
                 content:[
                 ["blank",['40px','160px']],
@@ -1365,13 +1542,41 @@ buyables: {
 		},
     },
     update(diff) {
+        getLevelMultipliers('warrior')
         updateSlotStats()
+        if (player.main.character.skill.fire_tickdamage) player.main.cooldowns.burntCooldown+=diff
+        if (player.main.character.healthPoints.lte(0))player.main.character.healthPoints = new Decimal(getMaxPlayerHP())
+        if (player.main.floor.monster.healthPoints.lte(0))player.main.floor.monster.healthPoints = new Decimal(getMaxEnemyHP())
         player.main.character.exp =  player.main.character.exp.add(new Decimal(5).times(diff))
+        player.main.cooldowns.attackCooldown+=diff
+        if (player.main.cooldowns.burntCooldown>=1) {
+            updateEnemyCurrentHP(getTotalAttack())
+            player.main.cooldowns.burntCooldown=0
+            player.main.cooldowns.burningMax -= 1
+            player.main.cooldowns.burningMax = Math.max(0,player.main.cooldowns.burningMax)
+        }
+        if (player.main.cooldowns.attackCooldown>=(getPlayerAttackSpeed()) && getPlayerAttackSpeed()>0) {
+            updateCurrentHP(player.main.floor.monster.attack)
+            if (!player.main.character.skill.fire_tickdamage)updateEnemyCurrentHP(getTotalAttack())
+            if (player.main.character.skill.fire_tickdamage) player.main.cooldowns.burningMax = player.main.character.skill.fire
+            player.main.cooldowns.attackCooldown = 0
+        }
+        if (player.main.character.healthPoints.lte(0)) {
+            player.main.character.healthPoints = new Decimal(getMaxPlayerHP())
+            player.main.floor.monster.healthPoints = getMaxEnemyHP()
+
+        }
+        if (player.main.floor.monster.healthPoints.lte(0)) {
+            player.main.character.healthPoints = new Decimal(getMaxPlayerHP())
+            player.main.floor.currentMonster += 1
+            player.main.floor.monster.healthPoints = getMaxEnemyHP()
+
+        }
         if (player.main.character.exp.gte(tmp.main.getNextLevelReq)) {
             player.main.character.level = player.main.character.level.add(1)
             player.main.character.exp = new Decimal(0)
+            player.main.character.healthPoints = new Decimal(getMaxPlayerHP())
         }
-        getLevelMultipliers('warrior')
         for (i in player.main.clickables) getScaleBuffs(true, tmp.main.clickables[i].type)
        },
     layerShown(){return true}

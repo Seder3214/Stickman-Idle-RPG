@@ -86,6 +86,7 @@ function getStartLayerData(layer) {
 	layerdata.achievements = [];
 	layerdata.challenges = getStartChallenges(layer);
 	layerdata.grid = getStartGrid(layer);
+	layerdata.skill_grid = getStartSkillGrid(layer);
 	layerdata.prevTab = ""
 
 	return layerdata;
@@ -130,7 +131,19 @@ function getStartGrid(layer) {
 	}
 	return data;
 }
+function getStartSkillGrid(layer) {
+	let data = {};
+	if (! layers[layer].skill_grid) return data
+	if (layers[layer].skill_grid.maxRows === undefined) layers[layer].skill_grid.maxRows=layers[layer].skill_grid.rows
+	if (layers[layer].skill_grid.maxCols === undefined) layers[layer].skill_grid.maxCols=layers[layer].skill_grid.cols
 
+	for (let y = 1; y <= layers[layer].skill_grid.maxRows; y++) {
+		for (let x = 1; x <= layers[layer].skill_grid.maxCols; x++) {
+			data[100*y + x] = layers[layer].skill_grid.getStartData(100*y + x)
+		}
+	}
+	return data;
+}
 function fixSave() {
 	defaultData = getStartPlayer();
 	fixData(defaultData, player);

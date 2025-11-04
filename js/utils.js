@@ -410,3 +410,11 @@ function gridRun(layer, func, data, id) {
 	else
 		return layers[layer].grid[func];
 }
+function skillGridRun(layer, func, data, id) {
+	if (isFunction(layers[layer].skill_grid[func])) {
+		let bound = layers[layer].skill_grid[func].bind(layers[layer].skill_grid)
+		return bound(data, id)
+	}
+	else
+		return layers[layer].skill_grid[func];
+}
