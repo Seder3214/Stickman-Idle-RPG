@@ -1,80 +1,6 @@
-
-function updateSlotStats() {
-    let slot = player.main.equipment;
-    let exclude = excludeStats();
-    let exclude2 = ['speed'];
-    for (let i in slot) {
-        // Инициализируем базовые статы если их нет
-        if (!slot[i]._baseStats) {
-            slot[i]._baseStats = {};
-            for (let j in slot[i]) {
-                if (typeof slot[i][j] === 'number' && j !== 'forgeMult' && j !== '_baseStats') {
-                    slot[i]._baseStats[j] = slot[i][j] / (slot[i].forgeMult || 1);
-                }
-            }
-        }
-        
-        // Применяем умножение
-        for (let j in slot[i]) {
-            if (!exclude.includes(j) && !exclude2.includes(j) && i !== 'speed' && slot[i]._baseStats[j] > 0) {
-                if (slot[i].forgeRarity==undefined&&slot[i].forgeLevel==undefined &&slot[i].forgeMult==undefined) {
-                   slot[i].forgeLevel = new Decimal(0)
-                    slot[i].forgeMult = new Decimal(1)                   
-                }
-                if (slot[i].rarity>slot[i].forgeRarity||slot[i].rarity<slot[i].forgeRarity) {
-                    player.main.buyables[11] = new Decimal(0)
-                    slot[i].forgeLevel = new Decimal(0)
-                    slot[i].forgeMult = new Decimal(1)
-                    slot[i][j] = slot[i]._baseStats[j]}
-                else slot[i][j] = slot[i]._baseStats[j] * slot[i].forgeMult;
-            }
-        }
-    }
-}
-function getStageRewards() {
-    let monstersOnStage = player.main.floor.monsters
-    let stage = new Decimal(player.main.floor.floorNumber)
-    let level = new Decimal(player.main.floor.floorLvl)
-    let luck = new Decimal(getFullStat('luck')).add(1)
-    let gold = new Decimal(1.15).mul(stage.mul(level)).mul(monstersOnStage).pow(new Decimal(1).add(luck.max(1).log10()))
-    let exp = new Decimal(0.5).mul(stage.mul(level).mul(1.5)).pow(1.1).mul(monstersOnStage).pow(luck.max(1).log2().pow(0.55))
-    return {gold:gold,exp:exp}
-}
-//Функция для вывода редкости
-function getRarityName(rarity) {
-    switch(rarity) {
-        case 1: return '(Обычный)'; break
-        case 2: return '(Необычный)'; break
-        case 3: return '(Редкий)'; break
-        case 4: return '(Эпический)'; break
-        case 5: return '(Легендарный)'; break
-        case 6: return '(Мифический)'; break
-        case 7: return '(Экзотический)'; break
-        case 8: return '(Уникальный)'; break
-        case 8: return '(Секретный)'; break
-    }
-}
-function getRariryColor(rarity) {
-       switch(rarity) {
-        case 0: return 'rgba(75, 75, 75, 1)'; break
-        case 1: return 'rgba(156, 156, 156, 1)'; break
-        case 2: return 'rgba(7, 206, 0, 1)'; break
-        case 3: return 'rgba(25, 0, 255, 1)'; break
-        case 4: return 'rgba(255, 0, 242, 1)'; break
-        case 5: return 'rgba(255, 183, 0, 1)'; break
-        case 6: return 'rgba(255, 98, 0, 1)'; break
-        case 7: return 'rgba(255, 0, 0, 1)'; break
-        case 8: return 'rgba(0, 238, 255, 1)'; break
-    } 
-}
-function excludeStats() {
-let scaled_stats = ['rarity','scaled_attack','scaled_defense','scaled_luck','forgeMult', 'forgeLevel','forgeRarity']
-    return scaled_stats
-}
-function getFullStat(stat) {
-    let fullstat = (player.main.character[`${stat}`].toNumber()+(getSlotBuffs()[`add_${stat}`]?getSlotBuffs()[`add_${stat}`]:getSlotBuffs()[`${stat}`]?getSlotBuffs()[`${stat}`]:0))*player.main.character[`multi_${stat}`]
-    return fullstat
-}
+/*-------------------------
+  | Функции характеристик |
+  -------------------------*/
 function getMaxPlayerHP() {
     let level = player.main.character.level
     let baseVitScale = new Decimal(10)
@@ -88,42 +14,10 @@ function getMaxEnemyHP() {
     let stage = new Decimal(player.main.floor.floorNumber)
     let level = new Decimal(player.main.floor.currentMonster)
     let monsterLevel = new Decimal(player.main.floor.monster.level)
-    return new Decimal(100).mul(new Decimal(2).pow(level.pow(0.95))).mul(monsterLevel.div(2).add(0.5)).mul(new Decimal(3.546).pow(stage))
+    return new Decimal(10).mul(new Decimal(1.15).pow(level.pow(0.95))).mul(monsterLevel.div(2).add(0.5)).mul(new Decimal(3.546).pow(stage))
 }
 function updateEnemyCurrentHP(value) {
     player.main.floor.monster.healthPoints = player.main.floor.monster.healthPoints.sub(value)
-}
-function getTotalAttack() {
-    let slotAttack = getSlotBuffs().attack
-    let scaleAttack = player.main.equipment.primary_weapon.scaled_attack   
-    let totalAttack = slotAttack+scaleAttack
-    if (player.main.character.skill.damage) totalAttack = totalAttack*(player.main.character.skill.damage)
-    if (player.main.character.skill.fire_tickdamage) totalAttack = totalAttack*(player.main.character.skill.fire_tickdamage)  
-    if (!isNaN(slotAttack)&&!isNaN(scaleAttack))return totalAttack
-    else return new Decimal(0)
-}
-function getNextForgeMult(id) {
-    let data = player.main.equipment[tmp.main.clickables[player.main.checkToggleSlotId].type]
-    let type = tmp.main.clickables[player.main.checkToggleSlotId].type
-    let level = data.forgeLevel.add(1)
-    let scaleTypes = ['necklace','ring_1','ring_2','bracelet']
-    let eff = new Decimal(scaleTypes.includes(type)?0.015:0.15).mul(level)
-    eff = eff.mul(level.div(10).add(1)).mul(level.sqrt().div(10).add(1))
-    return eff.add(1).pow(data.rarity).max(1)
-}
-function getSkills(id) {
-    let player_vitality = (player.main.character['vitality'].toNumber()+(getSlotBuffs()[`add_vitality`]?getSlotBuffs()[`add_vitality`]:0))*player.main.character[`multi_vitality`]
-    let player_strength = (player.main.character['strength'].toNumber()+(getSlotBuffs()[`add_strength`]?getSlotBuffs()[`add_strength`]:0))*player.main.character[`multi_strength`]
-    let player_agility = (player.main.character['agility'].toNumber()+(getSlotBuffs()[`add_agility`]?getSlotBuffs()[`add_agility`]:0))*player.main.character[`multi_agility`]
-    let player_intelligence = (player.main.character['intelligence'].toNumber()+(getSlotBuffs()[`add_intelligence`]?getSlotBuffs()[`add_intelligence`]:0))*player.main.character[`multi_intelligence`]
-    let skills = [
-        {skill_name:'Простой удар', skill_image:'basic_attack', damage:1, cooldown:1, rarity:0, level:0},
-        {skill_name:'Быстрый взмах', skill_image:'rapid_strike', damage:0.63,bloodlust:3, cooldown:0.365, rarity:1, level:0},
-        {skill_name:'Выпад щитом', skill_image:'shield_attack', damage:2.06+(Math.log10(player_strength+1)), defense_buff:1.1, cooldown:5.3, rarity:1, level:0},
-        {skill_name:'Двойной разрез', skill_image:'double_attack', damage:(0.5+(Math.log2(player_agility+1)-1))*2, cooldown:2.73, rarity:1, level:0},
-        {skill_name:'Огненный удар', skill_image:'fire_sword', damage:0,fire:3,fire_tickdamage: (0.5+(player_intelligence**0.35)), cooldown:6.06, rarity:2, level:0},
-    ]
-    return skills[id]
 }
 function getPlayerAttackSpeed() {
     let totalSpeed = 0
@@ -182,14 +76,51 @@ function getScaleBuffs(slot=false, type='') {
             }
             if (slot&&currentStat!='') player.main.equipment[type][`scaled_${currentStat}`] = currentEffect
         }
-function getSlotDisplay() {
-    let table = ['column', [
-                ['row',[['clickable',[11]], ["blank",['165px','80px']],['clickable',[12]]]],
-                ['row',[['clickable',[13]], ["blank",['165px','80px']],['clickable',[15]]]],
-                ['row',[['clickable',[14]], ["blank",['165px','80px']],['clickable',[16]]]],
-                ['row',[['clickable',[17]], ["blank",['5px','80px']],['clickable',[18]], ["blank",['5px','80px']],['clickable',[19]], ["blank",['5px','80px']],['clickable',[20]]]],
-                ], {'margin-right':'40px'}]
-    return table
+function updateSlotStats() {
+    let slot = player.main.equipment;
+    let exclude = excludeStats();
+    let exclude2 = ['speed'];
+    for (let i in slot) {
+        // Инициализируем базовые статы если их нет
+        if (!slot[i]._baseStats) {
+            slot[i]._baseStats = {};
+            for (let j in slot[i]) {
+                if (typeof slot[i][j] === 'number' && j !== 'forgeMult' && j !== '_baseStats') {
+                    slot[i]._baseStats[j] = slot[i][j] / (slot[i]._baseStats['item_name']?(slot[i].forgeMult || 1):1);
+                }
+            }
+            slot[i]._baseStats['item_name']=slot[i]['item_name']
+        }
+        
+        // Применяем умножение
+        for (let j in slot[i]) {
+            if (!exclude.includes(j) && !exclude2.includes(j) && i !== 'speed' && slot[i]._baseStats[j] > 0) {
+                if (slot[i].forgeRarity==undefined&&slot[i].forgeLevel==undefined &&slot[i].forgeMult==undefined) {
+                   slot[i].forgeLevel = new Decimal(0)
+                    slot[i].forgeMult = new Decimal(1)                   
+                }
+                if (slot[i].rarity>slot[i].forgeRarity||slot[i].rarity<slot[i].forgeRarity) {
+                    player.main.buyables[11] = new Decimal(0)
+                    slot[i].forgeLevel = new Decimal(0)
+                    slot[i].forgeMult = new Decimal(1)
+                    slot[i][j] = slot[i]._baseStats[j]}
+                else slot[i][j] = slot[i]._baseStats[j] * slot[i].forgeMult;
+            }
+        }
+    }
+}
+function getFullStat(stat) {
+    let fullstat = (player.main.character[`${stat}`].toNumber()+(getSlotBuffs()[`add_${stat}`]?getSlotBuffs()[`add_${stat}`]:getSlotBuffs()[`${stat}`]?getSlotBuffs()[`${stat}`]:0))*player.main.character[`multi_${stat}`]
+    return fullstat
+}
+function getTotalAttack() {
+    let slotAttack = getSlotBuffs().attack
+    let scaleAttack = player.main.equipment.primary_weapon.scaled_attack   
+    let totalAttack = slotAttack+scaleAttack
+    if (player.main.character.skill.damage) totalAttack = totalAttack*(player.main.character.skill.damage)
+    if (player.main.character.skill.fire_tickdamage) totalAttack = totalAttack*(player.main.character.skill.fire_tickdamage)  
+    if (!isNaN(slotAttack)&&!isNaN(scaleAttack))return totalAttack
+    else return new Decimal(0)
 }
 function getSlotBuffs() {
     let slot = player.main.equipment
@@ -212,94 +143,116 @@ function applySlotBuffs() {
     }
     return player.main.character
 }
-function toggleGridAndSlot(type) {
-if (player.main.checkToggleGridId!=''&&player.main.checkToggleSlotId!='') {
-    console.log(getGridData('main',player.main.checkToggleGridId))
-    let slotData = player.main.equipment[type]
-    let temp1 = player.main.equipment[type].forgeLevel
-    let temp2 = player.main.equipment[type].forgeMult
-    
-    player.main.equipment[type] = getGridData('main',player.main.checkToggleGridId)
-    player.main.grid[player.main.checkToggleGridId] = slotData
-    
-    // Сохраняем множитель для нового предмета в слоте
-    player.main.equipment[type].forgeLevel = temp1
-    player.main.equipment[type].forgeMult = temp2
-    
-    // Делим ВСЕ статы предмета в инвентаре на множитель
-    let stats = ['attack', 'defense','fire_attack', 'water_attack', 'poison_attack', 
-                'luck', 'add_strength', 'add_vitality', 'add_agility', 'add_intelligence'];
-    
-    for (let stat of stats) {
-        if (player.main.grid[player.main.checkToggleGridId][stat] !== undefined) {
-            let newValue = player.main.grid[player.main.checkToggleGridId][stat] / temp2;
-            if (!isNaN(newValue)) {
-                player.main.grid[player.main.checkToggleGridId][stat] = newValue;
-            }
-        }
+function getNextForgeMult(id) {
+    let data = player.main.equipment[tmp.main.clickables[player.main.checkToggleSlotId].type]
+    let type = tmp.main.clickables[player.main.checkToggleSlotId].type
+    let level = data.forgeLevel.add(1)
+    let scaleTypes = ['necklace','ring_1','ring_2','bracelet']
+    let eff = new Decimal(scaleTypes.includes(type)?0.015:0.15).mul(level)
+    eff = eff.mul(level.div(10).add(1)).mul(level.sqrt().div(10).add(1))
+    return eff.add(1).pow(data.rarity).max(1)
+}
+function getSkills(id) {
+    let player_vitality = (player.main.character['vitality'].toNumber()+(getSlotBuffs()[`add_vitality`]?getSlotBuffs()[`add_vitality`]:0))*player.main.character[`multi_vitality`]
+    let player_strength = (player.main.character['strength'].toNumber()+(getSlotBuffs()[`add_strength`]?getSlotBuffs()[`add_strength`]:0))*player.main.character[`multi_strength`]
+    let player_agility = (player.main.character['agility'].toNumber()+(getSlotBuffs()[`add_agility`]?getSlotBuffs()[`add_agility`]:0))*player.main.character[`multi_agility`]
+    let player_intelligence = (player.main.character['intelligence'].toNumber()+(getSlotBuffs()[`add_intelligence`]?getSlotBuffs()[`add_intelligence`]:0))*player.main.character[`multi_intelligence`]
+    let skills = [
+        {skill_name:'Простой удар', skill_image:'basic_attack', damage:1, cooldown:1, rarity:0, level:0},
+        {skill_name:'Быстрый взмах', skill_image:'rapid_strike', damage:0.63,bloodlust:3, cooldown:0.365, rarity:1, level:0},
+        {skill_name:'Выпад щитом', skill_image:'shield_attack', damage:2.06+(Math.log10(player_strength+1)), defense_buff:1.1, cooldown:5.3, rarity:1, level:0},
+        {skill_name:'Двойной разрез', skill_image:'double_attack', damage:(0.5+(Math.log10(player_agility+1)-1))*2, cooldown:2.73, rarity:1, level:0},
+        {skill_name:'Огненный удар', skill_image:'fire_sword', damage:0,fire:3,fire_tickdamage: (0.5+(player_intelligence**0.35)), cooldown:6.06, rarity:2, level:0},
+    ]
+    return skills[id]
+}
+/*------------------------
+  |  Функции для наград  |
+  ------------------------*/
+function getStageRewards() {
+    let monstersOnStage = player.main.floor.monsters
+    let stage = new Decimal(player.main.floor.floorNumber)
+    let level = new Decimal(player.main.floor.floorLvl)
+    let luck = new Decimal(getFullStat('luck')).add(1)
+    let gold = new Decimal(1.15).mul(stage.mul(level)).mul(monstersOnStage).pow(new Decimal(1).add(luck.max(1).log10()))
+    let exp = new Decimal(0.5).mul(stage.mul(level).mul(1.5)).pow(1.1).mul(monstersOnStage).pow(luck.max(1).log2().pow(0.55))
+    return {gold:gold,exp:exp}
+}
+function getItemDropChances() {
+    let stage = player.main.floor.floorNumber
+    let luck = getFullStat('luck')
+    let chances = [0,0,0,0,0,0,0,0]
+    if (stage<=100) {
+        chances=[0,0,0,0,0,0,0,1e-9*stage]
     }
-    
-    player.main.checkToggleGridId=''
-    player.main.checkToggleGridId_2=''
-    player.main.checkToggleSlotId=''
-}
-            else if (player.main.checkToggleSlotId!=''&&player.main.checkToggleGridId!=''&&player.main.equipment[type].item_name!='') {
-                let slotData = player.main.equipment[type]
-                let gridable=player.main.grid[player.main.checkToggleGridId]
-                player.main.grid[player.main.checkToggleGridId] = slotData
-                player.main.equipment[type] += gridable
-                 player.main.equipment[type].forgeLevel = temp1
-                player.main.equipment[type].forgeMult = temp2
-                console.log(player.main.grid[player.main.checkToggleGridId].attack/(temp2))
-                if (!isNaN(player.main.grid[player.main.checkToggleGridId].attack/(temp2))) player.main.grid[player.main.checkToggleGridId].attack/(temp2)
-                player.main.checkToggleGridId=''
-                player.main.checkToggleGridId_2=''
-                player.main.checkToggleSlotId=''
-            }
-}
-function toggleGrids() {
-    if (player.main.checkToggleGridId!=''&&player.main.checkToggleGridId_2!='') {
-        let grid_1 = getGridData('main', player.main.checkToggleGridId)
-        let grid_2 = getGridData('main', player.main.checkToggleGridId_2)
-        player.main.grid[player.main.checkToggleGridId] = grid_2
-        player.main.grid[player.main.checkToggleGridId_2] = grid_1
-        if (player.main.grid[player.main.checkToggleGridId]!=grid_1){
-            player.main.checkToggleGridId=''
-            player.main.checkToggleGridId_2=''
-        }
+    if (stage<=90) {
+        chances=[0,0,0,0,0.0035*stage,0.001*stage,1/10000000*stage,0]
     }
+    if (stage<=80) {
+        chances=[0,0,0,0,0.0025*stage,0.00001*stage,0,0]
+    }
+    if (stage<=65) {
+        chances=[0,0,0.012*stage,0.01*stage,0.001*stage,0,0,0]
+    }
+   if (stage<=40) {
+        chances=[0,0,0.2*stage,0.01*stage,0,0,0,0]
+    }
+   if (stage<=30) {
+        chances=[15-(stage/3),30*(stage**0.15/5),0.12*stage,0,0,0,0,0]
+    }
+    if (stage<=20) {
+        chances=[2+(stage*2),1+(stage*1.35),0,0,0,0,0]
+    }
+    if (stage<=10) {
+        chances=[(10*stage+luck),0,0,0,0,0,0]
+    }
+    for (i=0;i<chances.length;i++) {
+        if (chances[i]>=0) chances[i]*=new Decimal(luck).add(1).div(10).add(1).pow(0.35*(stage>80&&i>5?2.5:1)).toNumber()
+        chances[i]= chances[i]/100
+    }
+    return chances
 }
-//Функция для основных кнопок
-function setSubtab(id) {
-player.tab = 'main'
-player.subtabs[player.tab].mainTabs = 'Inventory'
-    switch(id) {
-        case 'inv': 
-        player.tab = 'main';
-        player.subtabs[player.tab].mainTabs = 'Inventory';
-        break
-        case 'player':
-        player.tab = 'main';
-        player.subtabs[player.tab].mainTabs = 'Player';
-        break
-        case 'skill':
-        player.tab = 'main';
-        player.subtabs[player.tab].mainTabs = 'Skills';
-        break
-        case 'forge':
-        player.tab = 'main';
-        player.subtabs[player.tab].mainTabs = 'Forge';
-        break
-        case 'prestige':
-        player.tab = 'main';
-        player.subtabs[player.tab].mainTabs = 'Prestige';
-        break
-        case 'shop': return '(Легендарный)'; break
+/*--------------
+  | UI функции |
+  --------------*/
+function getRarityName(rarity) {
+    switch(rarity) {
+        case 1: return '(Обычный)'; break
+        case 2: return '(Необычный)'; break
+        case 3: return '(Редкий)'; break
+        case 4: return '(Эпический)'; break
+        case 5: return '(Легендарный)'; break
         case 6: return '(Мифический)'; break
         case 7: return '(Экзотический)'; break
         case 8: return '(Уникальный)'; break
         case 8: return '(Секретный)'; break
     }
+}
+function getRariryColor(rarity) {
+       switch(rarity) {
+        case 0: return 'rgba(75, 75, 75, 1)'; break
+        case 1: return 'rgba(156, 156, 156, 1)'; break
+        case 2: return 'rgba(7, 206, 0, 1)'; break
+        case 3: return 'rgba(25, 0, 255, 1)'; break
+        case 4: return 'rgba(255, 0, 242, 1)'; break
+        case 5: return 'rgba(255, 183, 0, 1)'; break
+        case 6: return 'rgba(255, 98, 0, 1)'; break
+        case 7: return 'rgba(255, 0, 0, 1)'; break
+        case 8: return 'rgba(0, 238, 255, 1)'; break
+    } 
+}
+function getSlotDisplay() {
+    let table = ['column', [
+                ['row',[['clickable',[11]], ["blank",['165px','80px']],['clickable',[12]]]],
+                ['row',[['clickable',[13]], ["blank",['165px','80px']],['clickable',[15]]]],
+                ['row',[['clickable',[14]], ["blank",['165px','80px']],['clickable',[16]]]],
+                ['row',[['clickable',[17]], ["blank",['5px','80px']],['clickable',[18]], ["blank",['5px','80px']],['clickable',[19]], ["blank",['5px','80px']],['clickable',[20]]]],
+                ], {'margin-right':'40px'}]
+    return table
+}
+function excludeStats() {
+let scaled_stats = ['rarity','scaled_attack','scaled_defense','scaled_luck','forgeMult', 'forgeLevel','forgeRarity']
+    return scaled_stats
 }
 //Функция для вывода названия оружия
 function getEquipTypeName(type) {
@@ -352,16 +305,117 @@ function getPlayerStats(stat, value, bonus) {
         case 'poison_attack': return `<div class='statDiv'>Отравление:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
     }
 }
-//Пул лута обычной редкости
-function getCommonWeapon() {
+/*----------------------------
+  |  Функции для инвентаря   |
+  |  Функции для карт улучш. |
+  ----------------------------*/
+function toggleGridAndSlot(type) {
+if (player.main.checkToggleGridId!=''&&player.main.checkToggleSlotId!='') {
+    console.log(getGridData('main',player.main.checkToggleGridId))
+    let slotData = player.main.equipment[type]
+    let temp1 = player.main.equipment[type].forgeLevel
+    let temp2 = player.main.equipment[type].forgeMult
+    
+    player.main.equipment[type] = getGridData('main',player.main.checkToggleGridId)
+    player.main.grid[player.main.checkToggleGridId] = slotData
+    
+    
+    player.main.equipment[type].forgeLevel = temp1
+    player.main.equipment[type].forgeMult = temp2
+    
+    
+    let stats = ['attack', 'defense','fire_attack', 'water_attack', 'poison_attack', 
+                'luck', 'add_strength', 'add_vitality', 'add_agility', 'add_intelligence'];
+    
+    for (let stat of stats) {
+        if (player.main.grid[player.main.checkToggleGridId][stat] !== undefined) {
+            let newValue = player.main.grid[player.main.checkToggleGridId][stat] / temp2;
+            if (!isNaN(newValue)) {
+                player.main.grid[player.main.checkToggleGridId][stat] = newValue;
+            }
+        }
+    }
+    
+    player.main.checkToggleGridId=''
+    player.main.checkToggleGridId_2=''
+    player.main.checkToggleSlotId=''
+}
+            if (player.main.checkToggleSlotId!=''&&player.main.checkToggleGridId!=''&&player.main.equipment[type].item_name!='') {
+                let slotData = player.main.equipment[type]
+                let gridable=player.main.grid[player.main.checkToggleGridId]
+                player.main.grid[player.main.checkToggleGridId] = slotData
+                player.main.equipment[type] += gridable
+                 player.main.equipment[type].forgeLevel = temp1
+                player.main.equipment[type].forgeMult = temp2
+                console.log(player.main.grid[player.main.checkToggleGridId].attack/(temp2))
+                if (!isNaN(player.main.grid[player.main.checkToggleGridId].attack/(temp2))) player.main.grid[player.main.checkToggleGridId].attack/(temp2)
+                player.main.checkToggleGridId=''
+                player.main.checkToggleGridId_2=''
+                player.main.checkToggleSlotId=''
+            }
+}
+function toggleGrids() {
+    if (player.main.checkToggleGridId!=''&&player.main.checkToggleGridId_2!='') {
+        let grid_1 = getGridData('main', player.main.checkToggleGridId)
+        let grid_2 = getGridData('main', player.main.checkToggleGridId_2)
+        player.main.grid[player.main.checkToggleGridId] = grid_2
+        player.main.grid[player.main.checkToggleGridId_2] = grid_1
+        if (player.main.grid[player.main.checkToggleGridId]!=grid_1){
+            player.main.checkToggleGridId=''
+            player.main.checkToggleGridId_2=''
+        }
+    }
+}
+function getCard(id, skillId=undefined) {
+   if (skillId!=undefined) player.main.skill_grid[skillId].duplicates += 1
+    else if (id!=undefined) player.main.cards[id] +=1
+    player.main.character.skill_choose={}
+    player.inCardChoose=false
+}
+//Функция для основных кнопок
+function setSubtab(id) {
+player.tab = 'main'
+player.subtabs[player.tab].mainTabs = 'Inventory'
+    switch(id) {
+        case 'inv': 
+        player.tab = 'main';
+        player.subtabs[player.tab].mainTabs = 'Inventory';
+        break
+        case 'player':
+        player.tab = 'main';
+        player.subtabs[player.tab].mainTabs = 'Player';
+        break
+        case 'skill':
+        player.tab = 'main';
+        player.subtabs[player.tab].mainTabs = 'Skills';
+        break
+        case 'forge':
+        player.tab = 'main';
+        player.subtabs[player.tab].mainTabs = 'Forge';
+        break
+        case 'prestige':
+        player.tab = 'main';
+        player.subtabs[player.tab].mainTabs = 'Prestige';
+        break
+        case 'shop': return '(Легендарный)'; break
+        case 6: return '(Мифический)'; break
+        case 7: return '(Экзотический)'; break
+        case 8: return '(Уникальный)'; break
+        case 8: return '(Секретный)'; break
+    }
+}
+/*---------------------------------------------
+  |  Предметы/карты улучшения разной редкости  |
+  ---------------------------------------------*/
+function getCommonWeapon(ifSingleId=false,itemId) {
     let className = player.main.character.class
     let chosenPool = []
     let fullPool = [
         {item_type: 'primary_weapon', item_subtype: 'sword', image_name:'rusty_sword', item_name:'Ржавый меч', level: 0, attack:12, speed:0.9, strength_scale:"E", agility_scale:"F", rarity:1},
-        {item_type: 'secondary_weapon',item_subtype: 'dagger',image_name:'cracked_dagger', item_name:'Потрескавшийся короткий меч', level: 0, attack:4,speed:1.25, strength_scale:"F", agility_scale:"E", rarity:1},
         {item_type: 'primary_weapon', item_name:'Рассохшийся лук',image_name:'old_bow', item_subtype: 'bow',level: 0, attack:9,speed:1.1, strength_scale:"F", agility_scale:"E", rarity:1},
         {item_type: 'primary_weapon', item_name:'Простой посох', image_name:'simple_staff', item_subtype: 'staff', level: 0, attack:0, speed:1.3, fire_attack:4.5, intelligence_scale:"E", rarity:1},
         {item_type: 'secondary_weapon', item_name:'Дряхлый щит',image_name:'old_shield', item_subtype: 'shield',level: 0, defense:6, vitality_scale:"E", strength_scale:"F", rarity:1},
+        {item_type: 'secondary_weapon',item_subtype: 'dagger',image_name:'cracked_dagger', item_name:'Потрескавшийся короткий меч', level: 0, attack:4,speed:1.25, strength_scale:"F", agility_scale:"E", rarity:1},
         {item_type: 'secondary_weapon', item_name:'Старинный Гримуар',image_name:'ancient_grimoire',item_subtype: 'grimoire', level: 0, attack:0, intelligence_scale:"E", rarity:1},
         {item_type: 'chestplate',item_subtype: 'chestplate',image_name:'rusty_chestplate', item_name:'Поржавевшый Нагрудник', level: 0, defense: 9, attack:0, vitality_scale:"F", strength_scale:"F", agility_scale:"F", rarity:1},
         {item_type: 'helmet',item_subtype: 'helmet', image_name:'rusty_helmet',item_name:'Поржавевший Шлем', level: 0, defense:4, vitality_scale:"F", strength_scale:"F", agility_scale:"F", rarity:1},
@@ -376,18 +430,60 @@ function getCommonWeapon() {
         {item_type: 'bracelet', item_subtype: 'bracelet',image_name:'stone_bracelet',item_name:'Браслет из камней', level: 0, add_vitality:1, rarity:1},
     ]
     if (className=='warrior') {
-        for (i=0;i<fullPool.length;i++) if(i<=0||i>=6) chosenPool.push(fullPool[i])
+        for (i=0;i<fullPool.length;i++) if(i==0||i==3||i>=6) chosenPool.push(fullPool[i])
     }
     if (className=='archer') {
-        chosenPool=fullPool[1,2]
-        console.log(`${chosenPool}`)
+        for (i=0;i<fullPool.length;i++) if(i==1||i==4||i>=6) chosenPool.push(fullPool[i])
     }
     if (className=='mage') {
-        chosenPool=fullPool[3,4]
-        console.log(`${chosenPool}`)
+        for (i=0;i<fullPool.length;i++) if(i==2||i==5||i>=6) chosenPool.push(fullPool[i])
     }
-        for (i=0;i<fullPool.length;i++) if(i<=1||i>=6||i==4) chosenPool.push(fullPool[i])
+    if (ifSingleId) return chosenPool[itemId]
+    else return chosenPool
+}
+function getCommonUC(skill=false) {
+    let className = player.main.character.class
+    let chosenPool = []
+    let fullPool = [
+        {card_name: 'Листок с острыми углами',description: 'Сила персонажа ', value:1,amplify:false,card_id: 'common_str',rarity:1},
+        {card_name: 'Толстый лист',description: 'Живучесть персонажа ',value:1,amplify:false,card_id: 'common_vit',rarity:1},
+        {card_name: 'Тонкий лист',description: 'Ловкость персонажа',value:1,amplify:false,card_id: 'common_agi',rarity:1},
+        {card_name: 'Лист с древними надписями',description: 'Мудрость персонажа',value:1,amplify:false,card_id: 'common_int',rarity:1},
+        {card_name: 'Лист на удачу',description: 'Удача персонажа',value:1,amplify:false,card_id: 'common_luc',rarity:1},
+        {card_name: 'Печать усиления',description: 'Атака оружия ',value:5,amplify:true,card_id: 'common_atk_amp',rarity:1},
+        {card_name: 'Печать стойкости',description: 'Защита персонажа ',value:5,amplify:true,card_id: 'common_def_amp',rarity:1},
+        {card_name: 'Лист с обугленными краями',description: 'Огненный урон персонажа ',value:5,amplify:true,card_id: 'common_fire_amp',rarity:1},
+        {card_name: 'Пропитанный ядом лист',description: 'Урон отравлением персонажа ',value:5,amplify:true,card_id: 'common_psn_amp',rarity:1},
+        {card_name: 'Промоченный лист',description: 'Водный урон персонажа ',value:5,amplify:true,card_id: 'common_wtr_amp',rarity:1},
+    ]
+    let skillPool = [
+        {card_name: 'Быстрый взмах',description: 'Получить дупликат навыка',skillId:102,rarity:1},
+        {card_name: 'Двойной разрез',description: 'Получить дупликат навыка',skillId:104,rarity:1},
+        {card_name: 'Выпад щитом',description: 'Получить дупликат навыка',skillId:103,rarity:1},
+    ]
+    if (className='warrior') { 
+    if (skill==false)chosenPool.push(fullPool)
+    else chosenPool.push(skillPool)
+    }
     return chosenPool
+}
+function getRandomCards() {
+    let cards = getCommonUC(false)[0]
+    let skillCards = getCommonUC(true)[0]
+    
+    let chosenCards = []
+    let rand = 1000
+    for (i=1;i<=3;i++) {
+        if (i<3) {
+        rand = Math.floor(Math.random()*(cards.length-0)+0)
+        chosenCards.push(cards[rand])
+        }
+        else {
+        rand = Math.floor(Math.random()*(skillCards.length-0)+0)
+        chosenCards.push(skillCards[rand])
+    }
+    }
+    return chosenCards
 }
 //Основная часть игры
 addLayer("main", {
@@ -402,6 +498,18 @@ addLayer("main", {
         checkToggleGridId_2:'',
         checkToggleSlotId: '',
         checkToggleType: '',
+        cards: {
+            common_vit:0,
+            common_str:0,
+            common_agi:0,
+            common_int:0,
+            common_atk_amp:0,
+            common_luc:0,
+            common_def_amp:0,
+            common_fire_amp:0,
+            common_psn_amp:0,
+            common_wtr_amp:0,
+        },
         floor: {
             floorNumber:1,
             floorLvl:1,
@@ -1272,12 +1380,17 @@ buyables: {
         getUnlocked(id) { // Default
             return true
         },
+        getLevelReq(data,id) {
+            let level = player.main.skill_grid[id].level
+            let req = Math.floor(level+1*((level/5)+1))
+            return req
+        },
         getCanClick(data, id) {
             return true
         },
         onClick(data, id) { 
-            if (data.duplicates>=5) {
-                data.duplicates-=5
+            if (data.duplicates>=this.getLevelReq(data,id)) {
+                data.duplicates-=this.getLevelReq(data,id)
                 data.level+=1}
             },
         onHold(data, id) {
@@ -1296,13 +1409,13 @@ buyables: {
                 'width':'100%',
                 'height':'15px',
                 'border-top': '1.5px solid transparent', 
-                'border-image': `linear-gradient(to right, rgba(164, 255, 167, 1) ${(data.duplicates/5)*100}%, rgba(62, 62, 62, 1) 0px)`, 
+                'border-image': `linear-gradient(to right, rgba(164, 255, 167, 1) ${(data.duplicates/this.getLevelReq(data,id))*100}%, rgba(62, 62, 62, 1) 0px)`, 
                 'border-image-slice':'1',
-                'background': `linear-gradient(to right,lime ${Math.min(80,Math.max(0,(data.duplicates/5)-0.2)*100)}%, rgba(120, 255, 124, 1) ${Math.min(100,(data.duplicates/5)*100)}%,  grey 0px)`,
+                'background': `linear-gradient(to right,lime ${Math.min(80,Math.max(0,(data.duplicates/this.getLevelReq(data,id))-0.2)*100)}%, rgba(120, 255, 124, 1) ${Math.min(100,(data.duplicates/this.getLevelReq(data,id))*100)}%,  grey 0px)`,
             }
         },
         getProgress(data,id) {
-            return `${format(data.duplicates,0)}/${format(5,0)}`
+            return `${format(data.duplicates,0)}/${format(this.getLevelReq(data,id),0)}`
         },
         //Функция для текста в всплывалющем тултипе
         getTooltip(data,id) {
@@ -1376,7 +1489,8 @@ buyables: {
 
             if (player.main.checkToggleGridId_2==id) player.main.checkToggleGridId_2 = ''
             else if (player.main.checkToggleGridId!='') player.main.checkToggleGridId_2 = id
-            if (player.main.checkToggleSlotId!=''&&player.main.checkToggleGridId!=''&&(getGridData('main',player.main.checkToggleGridId).item_type==tmp.main.clickables[player.main.checkToggleSlotId].type||getGridData('main',player.main.checkToggleGridId).item_type=='none')) toggleGridAndSlot(tmp.main.clickables[player.main.checkToggleSlotId].type)
+            if (player.main.checkToggleSlotId!=''&&player.main.checkToggleGridId!=''&&((getGridData('main',player.main.checkToggleGridId).item_type==tmp.main.clickables[player.main.checkToggleSlotId].type||getGridData('main',player.main.checkToggleGridId).item_type=='none'))) toggleGridAndSlot(tmp.main.clickables[player.main.checkToggleSlotId].type)
+            else if (player.main.checkToggleSlotId!=''&&player.main.checkToggleGridId!=''&&tmp.main.clickables[player.main.checkToggleSlotId].type=='ring_1'||tmp.main.clickables[player.main.checkToggleSlotId].type=='ring_2'&& getGridData('main',player.main.checkToggleGridId).item_type=='ring') toggleGridAndSlot(tmp.main.clickables[player.main.checkToggleSlotId].type)
             toggleGrids()
             },
         getDisplay(data, id) {
@@ -1549,24 +1663,25 @@ buyables: {
 		},
     },
     update(diff) {
+        if (player.inCardChoose) return;
         getLevelMultipliers('warrior')
         updateSlotStats()
         if (player.main.character.skill.fire_tickdamage) player.main.cooldowns.burntCooldown+=diff
-        if (player.main.character.healthPoints.lte(0))player.main.character.healthPoints = new Decimal(getMaxPlayerHP())
+        if (player.main.character.healthPoints.lte(0)||player.main.character.healthPoints.gt(getMaxPlayerHP()))player.main.character.healthPoints = new Decimal(getMaxPlayerHP())
         if (player.main.floor.monster.healthPoints.lte(0))player.main.floor.monster.healthPoints = new Decimal(getMaxEnemyHP())
         player.main.character.exp =  player.main.character.exp.add(new Decimal(5).times(diff))
         if (getPlayerAttackSpeed()>0)player.main.cooldowns.attackCooldown+=diff
-        if (player.main.cooldowns.burntCooldown>=1&&player.main.cooldowns.burningMax>0) {
-            updateEnemyCurrentHP(getTotalAttack())
-            player.main.cooldowns.burntCooldown=0
-            player.main.cooldowns.burningMax -= 1
-            player.main.cooldowns.burningMax = Math.max(0,player.main.cooldowns.burningMax)
-        }
         if (player.main.cooldowns.attackCooldown>=(getPlayerAttackSpeed()) && getPlayerAttackSpeed()>0) {
             updateCurrentHP(player.main.floor.monster.attack)
             if (!player.main.character.skill.fire_tickdamage)updateEnemyCurrentHP(getTotalAttack())
             if (player.main.character.skill.fire_tickdamage) player.main.cooldowns.burningMax = player.main.character.skill.fire
             player.main.cooldowns.attackCooldown = 0
+        }
+        if (player.main.cooldowns.burntCooldown>=1&&player.main.cooldowns.burningMax>0) {
+            updateEnemyCurrentHP(getTotalAttack())
+            player.main.cooldowns.burntCooldown=0
+            player.main.cooldowns.burningMax -= 1
+            player.main.cooldowns.burningMax = Math.max(0,player.main.cooldowns.burningMax)
         }
         if (player.main.character.healthPoints.lte(0)) {
             player.main.character.healthPoints = new Decimal(getMaxPlayerHP())
@@ -1574,10 +1689,23 @@ buyables: {
 
         }
         if (player.main.floor.monster.healthPoints.lte(0)) {
+            let dropChance = Math.random()
+            console.log(dropChance)
             player.main.character.healthPoints = new Decimal(getMaxPlayerHP())
             player.main.floor.currentMonster += 1
             player.main.floor.monster.healthPoints = getMaxEnemyHP()
-
+            if (player.main.floor.currentMonster>=player.main.floor.monsters) {
+            player.main.character.skill_choose=getRandomCards()
+            player.inCardChoose = true
+            }
+            for (i=0; i<getItemDropChances().length;i++) {
+                console.log(getItemDropChances()[0], dropChance < getItemDropChances()[0])
+                if (dropChance < getItemDropChances()[0]) {
+                    let max = getCommonWeapon(false).length-1
+                    let checkItem = Math.floor(Math.random() * (max - 0) + 0);
+                    console.log(getCommonWeapon(true,checkItem))
+                }
+            }
         }
         if (player.main.character.exp.gte(tmp.main.getNextLevelReq)) {
             player.main.character.level = player.main.character.level.add(1)

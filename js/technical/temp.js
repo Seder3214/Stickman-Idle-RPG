@@ -11,7 +11,7 @@ var activeFunctions = [
 	"effectDescription", "display", "fullDisplay", "effectDisplay", "rewardDisplay",
 	"tabFormat", "content",
 	"onComplete", "onPurchase", "onEnter", "onExit", "done",
-	"getUnlocked", "getStyle", "getCanClick", "getTitle", "getDisplay",'getTooltipStyle','getTooltip','getSkillData','getSkillDesc','getProgressStyle','getProgress'
+	"getUnlocked", "getStyle", "getCanClick", "getTitle", "getDisplay",'getTooltipStyle','getTooltip','getSkillData','getSkillDesc','getProgressStyle','getProgress','getLevelReq'
 ]
 
 var noCall = doNotCallTheseFunctionsEveryTick

@@ -35,8 +35,26 @@ addLayer("tree-tab", {
                     return debuffs+`
                     <div style='background-color: red; border: 2px solid white; width: 150px; height:20px'>${format(player.main.floor.monster.healthPoints,2)}/${format(getMaxEnemyHP(),2)}</div>
                     <p><div style='background-color: blue; border: 2px solid white; width: 100px; height:20px'>Enemy MP</div><br>
-                    <div style='background-color: lime; width: 100px; height:2px'></div>`}]]]
+                    <div style='background-color: lime; width: 100px; height:2px'></div>`}]]],
+                ['blank',['0px','100px']],
+                ["display-text", function() {
+                    let table = "<span style='display:inline;'>Вы победили босса этажа. Выберите одну из трёх полученных карт. <br></span><br><div style='width:90%; background:rgba(21, 21, 21, 1); height:500px; align-items:center; justify-content:center; display:flex; border:4px solid white; opacity:1'><br>"
+                    if (player.inCardChoose) {
+                        let x = player.main.character.skill_choose
+                        for (i=0;i<3;i++) {
+                            table+=`<div style='width:250px; height:400px; border:4px><span style='display:inline;'>${x[i].card_name}</span><hr><br>
+                            <div style='background-color:rgba(193, 153, 61, 1); border:2px solid white; 
+                            height:350px; width:220px; text-align:center; align-items:flex-end; justify-content:center;
+                            display:flex; padding-block-end:0rem; color:black'><span style='font-size:19px;font-family: "Cormorant Garamond", serif;padding-top:90%'>${x[i].description} 
+                            ${`<span style='color:rgba(72, 255, 0, 1); font-family: "Cormorant Garamond", serif;'>${x[i].skillId?`[${x[i].card_name}]`:(x[i].amplify==true?`+${x[i].value}%`:`+${x[i].value}`)}</span>`}</span><span style='position:absolute;padding-bottom:2px; font-size:17px;font-family: "Cormorant Garamond", serif;'>${getRarityName(x[i].rarity)} | ${x[i].skillId?'Карта навыка':'Карта улучшения'}</span>
+                            </div><br>
+                            <button onClick='getCard("${x[i].skillId?undefined:x[i].card_id}", ${x[i].skillId?x[i].skillId:undefined})'style='border:2px solid rgba(38, 255, 0, 1); width:200px; height:30px; background:rgba(17, 36, 10, 1); font-size:14px; color:rgba(142, 255, 130, 1); cursor:pointer;'>Выбрать ${x[i].skillId?`карту навыка`:`карту улучшения`}</button></div>`
+                        }
+                        return table+"</div>"
+                    }
+                }],
                 ],
+                
     previousTab: "",
     leftTab: true,
 })

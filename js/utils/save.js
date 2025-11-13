@@ -20,6 +20,7 @@ function startPlayerBase() {
 		timePlayed: 0,
 		keepGoing: false,
 		hasNaN: false,
+		inCardChoose:false,
 
 		points: modInfo.initialStartPoints,
 		subtabs: {},
