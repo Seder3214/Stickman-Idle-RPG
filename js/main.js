@@ -55,14 +55,14 @@ function updateSlotScaleBuffs() {
 function getScaleBuffs(slot=false, type='') {
             let scales = ['vitality_scale', 'strength_scale','agility_scale', 'intelligence_scale']
             let scaled_stats = excludeStats()
-            let scaleNames = {'-':0,'F': 0.10, 'E': 0.275, 'D':0.45, 'C':0.75, 'B':1, 'A': 1.365, 'S': 1.75, 'SS':2, 'SSS':2.5,'R':3,'SR':3.75, 'SSR':4.5, 'UR':6, 'X':7.5}
+            let scaleNames = {'-':0,'FF':0.001,'F': 0.10, 'E': 0.275, 'D':0.45, 'C':0.75, 'B':1, 'A': 1.365, 'S': 1.75, 'SS':2, 'SSS':2.5,'R':3,'SR':3.75, 'SSR':4.5, 'UR':6, 'X':7.5}
             let data = player.main.equipment[type]
             let currentEffect = 0
             let currentStat=''
             for (i in data) {
                 if (scales.includes(i)) {
                     for (j in data) {
-                        if (j!='speed' &&(!scaled_stats.includes(j)) && data[j]>0) {
+                        if (j!='speed' &&(!scaled_stats.includes(j))&& data[j]>0) {
                             let base = data[j]
                             currentStat=j
                             let subI = i
@@ -79,7 +79,7 @@ function getScaleBuffs(slot=false, type='') {
 function updateSlotStats() {
     let slot = player.main.equipment;
     let exclude = excludeStats();
-    let exclude2 = ['speed'];
+    let exclude2 = ['speed','crit_chance'];
     for (let i in slot) {
         // Инициализируем базовые статы если их нет
         if (!slot[i]._baseStats) {
@@ -116,15 +116,14 @@ function getFullStat(stat) {
 function getTotalAttack() {
     let slotAttack = getSlotBuffs().attack
     let scaleAttack = player.main.equipment.primary_weapon.scaled_attack   
-    let totalAttack = slotAttack+scaleAttack
+    let totalAttack = slotAttack+(scaleAttack?scaleAttack:0)
     if (player.main.character.skill.damage) totalAttack = totalAttack*(player.main.character.skill.damage)
     if (player.main.character.skill.fire_tickdamage) totalAttack = totalAttack*(player.main.character.skill.fire_tickdamage)  
-    if (!isNaN(slotAttack)&&!isNaN(scaleAttack))return totalAttack
-    else return new Decimal(0)
+    return totalAttack
 }
 function getSlotBuffs() {
     let slot = player.main.equipment
-    let data = {add_vitality:0,add_strength:0,add_agility:0,add_intelligence:0,attack:0, speed:0, defense:0, luck:0, fire_attack:0,poison_attack:0, water_attack:0, scaled_attack:0, scaled_defense:0,scaled_luck:0}
+    let data = {add_vitality:0,add_strength:0,add_agility:0,add_intelligence:0,attack:0, speed:0, defense:0, luck:0, fire_attack:0,poison_attack:0, water_attack:0, scaled_attack:0, scaled_defense:0,scaled_luck:0, crit:0, crit_chance:0}
     for (i in slot) {
         for (j in data) {
                 if (slot[i][j]!=undefined) data[j] += slot[i][j]
@@ -286,6 +285,8 @@ function getStatName(stat, value) {
         case 'add_vitality': return `Живучесть: +${format(value,0)}`; break
         case 'add_agility': return `Ловкость: +${format(value,0)}`; break
         case 'add_intelligence': return `Мудрость: +${format(value,0)}`; break
+        case 'crit_chance': return `Шанс крита: +${format(value,0)}%`; break
+        case 'crit': return `Крит урон: +${format(value,0)}%`; break
     }
 }
 //Функция для вывода основных характеристик персонажа
@@ -303,6 +304,8 @@ function getPlayerStats(stat, value, bonus) {
         case 'fire_attack': return `<div class='statDiv'>Огненный урон:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
         case 'water_attack': return `<div class='statDiv'>Водный урон:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
         case 'poison_attack': return `<div class='statDiv'>Отравление:</div><div class='statDiv'>${format(value,0)}</div><div class='statDiv'>${format(bonus,0)}</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'crit_chance': return `<div class='statDiv'>Шанс крита : </div><div class='statDiv'>${format(value,0)}%</div><div class='statDiv'>${format(bonus,0)}%</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
+        case 'crit': return `<div class='statDiv'>Крит. урон: </div><div class='statDiv'>${format(value+100,0)}%</div><div class='statDiv'>${format(bonus,0)}%</div><div class='statDiv' style='width:260px'>x${format(1,2)} | x${format(1,2)}</div>`; break
     }
 }
 /*----------------------------
@@ -320,8 +323,12 @@ if (player.main.checkToggleGridId!=''&&player.main.checkToggleSlotId!='') {
     player.main.grid[player.main.checkToggleGridId] = slotData
     
     
-    player.main.equipment[type].forgeLevel = temp1
-    player.main.equipment[type].forgeMult = temp2
+    if (player.main.equipment[type].rarity>player.main.equipment[type].forgeRarity||player.main.equipment[type].rarity<player.main.equipment[type].forgeRarity) {
+    player.main.equipment[type].forgeLevel = 0
+    player.main.equipment[type].forgeMult = 1
+}
+else {player.main.equipment[type].forgeLevel = temp1
+    player.main.equipment[type].forgeMult = temp2}
     
     
     let stats = ['attack', 'defense','fire_attack', 'water_attack', 'poison_attack', 
@@ -345,8 +352,8 @@ if (player.main.checkToggleGridId!=''&&player.main.checkToggleSlotId!='') {
                 let gridable=player.main.grid[player.main.checkToggleGridId]
                 player.main.grid[player.main.checkToggleGridId] = slotData
                 player.main.equipment[type] += gridable
-                 player.main.equipment[type].forgeLevel = temp1
-                player.main.equipment[type].forgeMult = temp2
+                if (player.main.equipment[type].rarity>splayer.main.equipment[type].forgeRarity||player.main.equipment[type].rarity<player.main.equipment[type].forgeRarity) {player.main.equipment[type].forgeLevel = temp1
+                player.main.equipment[type].forgeMult = temp2}
                 console.log(player.main.grid[player.main.checkToggleGridId].attack/(temp2))
                 if (!isNaN(player.main.grid[player.main.checkToggleGridId].attack/(temp2))) player.main.grid[player.main.checkToggleGridId].attack/(temp2)
                 player.main.checkToggleGridId=''
@@ -410,17 +417,12 @@ player.subtabs[player.tab].mainTabs = 'Inventory'
 function getCommonWeapon(ifSingleId=false,itemId) {
     let className = player.main.character.class
     let chosenPool = []
+    let classPool = []
     let fullPool = [
-        {item_type: 'primary_weapon', item_subtype: 'sword', image_name:'rusty_sword', item_name:'Ржавый меч', level: 0, attack:12, speed:0.9, strength_scale:"E", agility_scale:"F", rarity:1},
-        {item_type: 'primary_weapon', item_name:'Рассохшийся лук',image_name:'old_bow', item_subtype: 'bow',level: 0, attack:9,speed:1.1, strength_scale:"F", agility_scale:"E", rarity:1},
-        {item_type: 'primary_weapon', item_name:'Простой посох', image_name:'simple_staff', item_subtype: 'staff', level: 0, attack:0, speed:1.3, fire_attack:4.5, intelligence_scale:"E", rarity:1},
-        {item_type: 'secondary_weapon', item_name:'Дряхлый щит',image_name:'old_shield', item_subtype: 'shield',level: 0, defense:6, vitality_scale:"E", strength_scale:"F", rarity:1},
-        {item_type: 'secondary_weapon',item_subtype: 'dagger',image_name:'cracked_dagger', item_name:'Потрескавшийся короткий меч', level: 0, attack:4,speed:1.25, strength_scale:"F", agility_scale:"E", rarity:1},
-        {item_type: 'secondary_weapon', item_name:'Старинный Гримуар',image_name:'ancient_grimoire',item_subtype: 'grimoire', level: 0, attack:0, intelligence_scale:"E", rarity:1},
-        {item_type: 'chestplate',item_subtype: 'chestplate',image_name:'rusty_chestplate', item_name:'Поржавевшый Нагрудник', level: 0, defense: 9, attack:0, vitality_scale:"F", strength_scale:"F", agility_scale:"F", rarity:1},
-        {item_type: 'helmet',item_subtype: 'helmet', image_name:'rusty_helmet',item_name:'Поржавевший Шлем', level: 0, defense:4, vitality_scale:"F", strength_scale:"F", agility_scale:"F", rarity:1},
-        {item_type: 'leggings', item_subtype: 'leggings',image_name:'rusty_leggings',item_name:'Поржавевшие Поножи', level: 0, defense:6, vitality_scale:"F", strength_scale:"F", agility_scale:"F", rarity:1},
-        {item_type: 'boots',item_subtype: 'boots',image_name:'rusty_boots', item_name:'Кожаные Ботинки', level: 0, defense:3, vitality_scale:"F", strength_scale:"F", agility_scale:"F", rarity:1},
+        {item_type: 'chestplate',item_subtype: 'chestplate',image_name:'rusty_chestplate', item_name:'Поржавевшый Нагрудник', level: 0, defense: 9, attack:0,  rarity:1},
+        {item_type: 'helmet',item_subtype: 'helmet', image_name:'rusty_helmet',item_name:'Поржавевший Шлем', level: 0, defense:4, rarity:1},
+        {item_type: 'leggings', item_subtype: 'leggings',image_name:'rusty_leggings',item_name:'Поржавевшие Поножи', level: 0, defense:6, rarity:1},
+        {item_type: 'boots',item_subtype: 'boots',image_name:'rusty_boots', item_name:'Кожаные Ботинки', level: 0, defense:3, rarity:1},
         {item_type: 'ring', item_subtype: 'ring',image_name:'iron_ring',item_name:'Железное Кольцо', level: 0, add_strength:2, rarity:1},
         {item_type: 'ring', item_subtype: 'ring',image_name:'magic_ring',item_name:'Кольцо с магическим камнем', level: 0, add_intelligence:3, rarity:1},
         {item_type: 'ring',item_subtype: 'ring', image_name:'lucky_ring',item_name:'Кольцо с Четырёхлистным клевером',level: 0, luck:3, rarity:1},
@@ -430,16 +432,69 @@ function getCommonWeapon(ifSingleId=false,itemId) {
         {item_type: 'bracelet', item_subtype: 'bracelet',image_name:'stone_bracelet',item_name:'Браслет из камней', level: 0, add_vitality:1, rarity:1},
     ]
     if (className=='warrior') {
-        for (i=0;i<fullPool.length;i++) if(i==0||i==3||i>=6) chosenPool.push(fullPool[i])
+        classPool = [
+          {item_type: 'primary_weapon', item_subtype: 'sword', image_name:'rusty_sword', item_name:'Ржавый меч', level: 0, attack:12, strength_scale:'FF', speed:0.9, rarity:1},  
+          {item_type: 'secondary_weapon', item_name:'Дряхлый щит',image_name:'old_shield', item_subtype: 'shield',level: 0, defense:6, rarity:1},
+        ]
+        chosenPool.push(fullPool.concat(classPool))
     }
     if (className=='archer') {
-        for (i=0;i<fullPool.length;i++) if(i==1||i==4||i>=6) chosenPool.push(fullPool[i])
+        classPool = [
+           {item_type: 'primary_weapon', item_name:'Рассохшийся лук',image_name:'old_bow', item_subtype: 'bow',level: 0,agility_scale:'FF', attack:9,speed:1.1,  rarity:1}, 
+           {item_type: 'secondary_weapon',item_subtype: 'dagger',image_name:'cracked_dagger', item_name:'Потрескавшийся короткий меч', level: 0, attack:4, rarity:1},
+        ]
+        chosenPool.push(fullPool.concat(classPool))
     }
     if (className=='mage') {
-        for (i=0;i<fullPool.length;i++) if(i==2||i==5||i>=6) chosenPool.push(fullPool[i])
+        classPool = [
+            {item_type: 'primary_weapon', item_name:'Простой посох', image_name:'simple_staff', item_subtype: 'staff',intelligence_scale:'FF', level: 0, attack:3, speed:1.3, fire_attack:4.5, rarity:1},
+            {item_type: 'secondary_weapon', item_name:'Старинный Гримуар',image_name:'ancient_grimoire',item_subtype: 'grimoire', level: 0, attack:1,  rarity:1},
+        ]
+        chosenPool.push(fullPool.concat(classPool))
     }
-    if (ifSingleId) return chosenPool[itemId]
-    else return chosenPool
+    if (ifSingleId) return chosenPool[0][itemId]
+    else return chosenPool[0]
+}
+function getUncommonWeapon(ifSingleId=false,itemId) {
+    let className = player.main.character.class
+    let chosenPool = []
+    let classPool = []
+    let fullPool = [
+        {item_type: 'chestplate',item_subtype: 'chestplate',image_name:'chain_chestplate', item_name:'Кольчужный Нагрудник', level: 0, vitality_scale:"F", agility_scale:"F", intelligence_scale:"F", defense: 16, attack:0,  rarity:2},
+        {item_type: 'helmet',item_subtype: 'helmet', image_name:'chain_helmet',item_name:'Кольчужный Шлем', level: 0,vitality_scale:"F", agility_scale:"F", intelligence_scale:"F", defense:7, rarity:2},
+        {item_type: 'leggings', item_subtype: 'leggings',image_name:'chain_leggings',item_name:'Кольчужные Поножи',vitality_scale:"F", agility_scale:"F", intelligence_scale:"F", level: 0, defense:8, rarity:2},
+        {item_type: 'boots',item_subtype: 'boots',image_name:'old_boots', item_name:'Старые ботинки',vitality_scale:"F", agility_scale:"F", intelligence_scale:"F", level: 0, defense:5, rarity:2},
+        {item_type: 'ring', item_subtype: 'ring',image_name:'wold_fang_ring',item_name:'Кольцо из клыка волка', level: 0, add_strength:4, crit_chance:1, rarity:2},
+        {item_type: 'ring', item_subtype: 'ring',image_name:'magic_orb_ring',item_name:'Кольцо со сферой стихий', level: 0, add_intelligence:5, attack:2, rarity:2},
+        {item_type: 'ring',item_subtype: 'ring', image_name:'semi_golden_ring',item_name:'Позолоченное кольцо',level: 0, luck:3, rarity:2},
+        {item_type: 'necklace', item_subtype: 'necklace',image_name:'silver_necklace',item_name:'Ожерелье из глаза гоблина', level: 0, crit_chance:2, attack:3, rarity:2},
+        {item_type: 'necklace', item_subtype: 'necklace',image_name:'golden_runic_seal',item_name:'Позолоченная руническая печать', level: 0, luck:6, rarity:2},
+        {item_type: 'bracelet', item_subtype: 'bracelet',image_name:'ente_root',item_name:'Закругленный корень энта', level: 0, crit:5, add_strength:2,  rarity:2},
+        {item_type: 'bracelet', item_subtype: 'bracelet',image_name:'speed_bracelet',item_name:'Браслет скорости', level: 0, add_agility:2, rarity:2},
+    ]
+    if (className=='warrior') {
+        classPool = [
+          {item_type: 'primary_weapon', item_subtype: 'sword', image_name:'old_warrior_sword', item_name:'Старый меч воина',strength_scale:"F", level: 0, attack:21, speed:0.85, rarity:2},  
+          {item_type: 'secondary_weapon', item_name:'Деревянный щит',image_name:'wooden_shield', item_subtype: 'shield',level: 0, defense:12,vitality_scale:"F", rarity:2},
+        ]
+        chosenPool.push(fullPool.concat(classPool))
+    }
+    if (className=='archer') {
+        classPool = [
+           {item_type: 'primary_weapon', item_name:'Длинный лук',image_name:'long_bow', item_subtype: 'bow',level: 0, attack:14,agility_scale:"F",speed:1, rarity:2}, 
+           {item_type: 'secondary_weapon',item_subtype: 'dagger',image_name:'cracked_dagger', item_name:'Потрескавшийся короткий меч',intelligence_scale:"F", level: 0, attack:4,  rarity:2},
+        ]
+        chosenPool.push(fullPool.concat(classPool))
+    }
+    if (className=='mage') {
+        classPool = [
+            {item_type: 'primary_weapon', item_name:'Посох с плохим магическим камнем', image_name:'magic_stone_staff', item_subtype: 'staff',intelligence_scale:"F", level: 0, attack:8, speed:1.25, rarity:2},
+            {item_type: 'secondary_weapon', item_name:'Фолиант ученика',image_name:'rookie_grimoire',item_subtype: 'grimoire', level: 0, attack:3,intelligence_scale:"F",  rarity:2},
+        ]
+        chosenPool.push(fullPool.concat(classPool))
+    }
+    if (ifSingleId) return chosenPool[0][itemId]
+    else return chosenPool[0]
 }
 function getCommonUC(skill=false) {
     let className = player.main.character.class
@@ -1490,7 +1545,9 @@ buyables: {
             if (player.main.checkToggleGridId_2==id) player.main.checkToggleGridId_2 = ''
             else if (player.main.checkToggleGridId!='') player.main.checkToggleGridId_2 = id
             if (player.main.checkToggleSlotId!=''&&player.main.checkToggleGridId!=''&&((getGridData('main',player.main.checkToggleGridId).item_type==tmp.main.clickables[player.main.checkToggleSlotId].type||getGridData('main',player.main.checkToggleGridId).item_type=='none'))) toggleGridAndSlot(tmp.main.clickables[player.main.checkToggleSlotId].type)
-            else if (player.main.checkToggleSlotId!=''&&player.main.checkToggleGridId!=''&&tmp.main.clickables[player.main.checkToggleSlotId].type=='ring_1'||tmp.main.clickables[player.main.checkToggleSlotId].type=='ring_2'&& getGridData('main',player.main.checkToggleGridId).item_type=='ring') toggleGridAndSlot(tmp.main.clickables[player.main.checkToggleSlotId].type)
+            else if (player.main.checkToggleSlotId!='') {
+        if(player.main.checkToggleGridId!=''&&tmp.main.clickables[player.main.checkToggleSlotId].type=='ring_1'||tmp.main.clickables[player.main.checkToggleSlotId].type=='ring_2'&& getGridData('main',player.main.checkToggleGridId).item_type=='ring') toggleGridAndSlot(tmp.main.clickables[player.main.checkToggleSlotId].type)
+        }
             toggleGrids()
             },
         getDisplay(data, id) {
@@ -1546,7 +1603,7 @@ buyables: {
             return table+statsTable
         },
         getStyle(data, id) {
-                        if (player.main.checkToggleGridId==id||player.main.checkToggleGridId_2==id) return {
+                        if (player.main.checkToggleGridId==id||player.main.checkToggleGridId_2==id && data.rarity>0) return {
                 'width':'75px',
                 'height':'75px',
                 'border-radius':'0',
@@ -1554,7 +1611,7 @@ buyables: {
                 'background-position': '50% 50%',
                 'color':'white',
                 'font-size':'16px',
-                'background-image': `${data.rarity>0?`url('resources/${data.image_name}.png')`:`url('resources/rarity_${data.rarity}.png')`})`,
+                'background-image': `${data.rarity>0?`url('resources/rarity_${data.rarity}.png')`:`url('resources/rarity_${data.rarity}.png')`})`,
                'border':'4px solid rgba(248, 175, 49, 1)',
             }
            else return {
@@ -1566,7 +1623,7 @@ buyables: {
                 'background-position': '50% 50%',
                 'color':'white',
                 'font-size':'16px',
-                'background-image': `${data.rarity>0?`url('resources/${data.image_name}.png')`:`url('resources/rarity_${data.rarity}.png')`}`,
+                'background-image': `${data.rarity>0?`url('resources/rarity_${data.rarity}.png')`:`url('resources/rarity_${data.rarity}.png')`}`,
             }
             
         },
@@ -1663,7 +1720,12 @@ buyables: {
 		},
     },
     update(diff) {
-        if (player.inCardChoose) return;
+        if (player.inCardChoose){
+        getLevelMultipliers('warrior')
+        updateSlotStats()
+        for (i in player.main.clickables) getScaleBuffs(true, tmp.main.clickables[i].type)
+        return ;
+        };
         getLevelMultipliers('warrior')
         updateSlotStats()
         if (player.main.character.skill.fire_tickdamage) player.main.cooldowns.burntCooldown+=diff
@@ -1694,17 +1756,24 @@ buyables: {
             player.main.character.healthPoints = new Decimal(getMaxPlayerHP())
             player.main.floor.currentMonster += 1
             player.main.floor.monster.healthPoints = getMaxEnemyHP()
-            if (player.main.floor.currentMonster>=player.main.floor.monsters) {
+            let x = 0
+            let rarityItems=[function() {return ;}, getCommonWeapon, getUncommonWeapon]
+            console.log(rarityItems[0](false),rarityItems[1](false))
+            for (let i=0; i<(getItemDropChances().length);i++) {
+                if (dropChance < getItemDropChances()[i]) {
+                    x+=1
+                    console.log(dropChance < getItemDropChances()[i], dropChance, getItemDropChances()[i],x, i)
+                }
+            }
+            if (x>=1){
+                    let max = rarityItems[x](false).length-1
+                    let checkItem = Math.floor(Math.random() * (max - 0) + 0);
+                    console.log(rarityItems[x](true,checkItem),x)
+                    x=0
+                }
+              if (player.main.floor.currentMonster>=player.main.floor.monsters) {
             player.main.character.skill_choose=getRandomCards()
             player.inCardChoose = true
-            }
-            for (i=0; i<getItemDropChances().length;i++) {
-                console.log(getItemDropChances()[0], dropChance < getItemDropChances()[0])
-                if (dropChance < getItemDropChances()[0]) {
-                    let max = getCommonWeapon(false).length-1
-                    let checkItem = Math.floor(Math.random() * (max - 0) + 0);
-                    console.log(getCommonWeapon(true,checkItem))
-                }
             }
         }
         if (player.main.character.exp.gte(tmp.main.getNextLevelReq)) {
