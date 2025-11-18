@@ -25,7 +25,9 @@ addLayer("tree-tab", {
                     return table}],
                 "blank",
                 ['row',[
-                    ["display-text", function() {return `<div style='background-color: red; border: 2px solid white; width: 150px; height:20px'>${format(player.main.character.healthPoints,2)}/${format(getMaxPlayerHP(),2)}</div>
+                    ["display-text", function() {return `<div style=" width:100px; height:50px; position:absolute; 
+            top:3%; left:5%; align-items: center; justify-content: center; display:flex"><img src='resources/coin.png' style='background-repeat: no-repeat;
+            background-position: 50% 50%; text-align: center;'><b>${format(player.main.gold)}</b></img></div><div style='background-color: red; border: 2px solid white; width: 150px; height:20px'>${format(player.main.character.healthPoints,2)}/${format(getMaxPlayerHP(),2)}</div>
                     <p><div style='background-color: blue; border: 2px solid white; width: 100px; height:20px'>Player MP</div><br>
                     <div style='background:linear-gradient(to right, lime ${(player.main.cooldowns.attackCooldown/(getPlayerAttackSpeed()))*100}%, grey 1px); width: 100px; height:2px'></div>`}],
                 ['blank',['750px','50px']],
