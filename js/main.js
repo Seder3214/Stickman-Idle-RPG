@@ -1,19 +1,25 @@
 /*-------------------------
   | Функции характеристик |
   -------------------------*/
+  function getCritStats() {
+    let chance = getSlotBuffs().crit_chance+player.main.character.crit_chance
+    let crit = getSlotBuffs().crit+player.main.character.crit+200
+    return {crit_chance:chance/100, crit:crit/100}
+  }
 function updatePlayerStats() {
-  let vitality = new Decimal(0)
-  let strength = new Decimal(0)
+  let className = player.main.character.class
+  let vitality = className=='warrior'?new Decimal(2):new Decimal(1)
+  let strength = className=='warrior'?new Decimal(2):new Decimal(1)
   let defense = new Decimal(0)
-  let agility = new Decimal(0)
-  let intelligence = new Decimal(0)
+  let agility = className=='archer'?new Decimal(2):new Decimal(1)
+  let intelligence = className=='mage'?new Decimal(2):new Decimal(1)
   let attack = getSlotBuffs().attack
-  let fire_attack = new Decimal(0)
-  let water_attack = new Decimal(0)
-  let poison_attack = new Decimal(0)
-  let luck = new Decimal(0)
+  let fire_attack = className=='mage'?new Decimal(1):new Decimal(0)
+  let water_attack = className=='mage'?new Decimal(1):new Decimal(0)
+  let poison_attack = className=='mage'?new Decimal(1):new Decimal(0)
+  let luck = className=='archer'?new Decimal(2):new Decimal(1)
   let crit = new Decimal(0)
-  let crit_chance = new Decimal(0)
+  let crit_chance = className=='archer'?new Decimal(5):new Decimal(0)
   let level = new Decimal(1)
   let data = player.main.cards
   /*      cards: {
@@ -28,17 +34,18 @@ function updatePlayerStats() {
         common_psn_amp: 0,
         common_wtr_amp: 0,
         */
-  if (data.common_vit>=1) vitality = vitality.add(data.common_vit)
-  if (data.common_str>=1) strength = strength.add(data.common_str)
-  if (data.common_agi>=1) agility += data.common_agi
-  if (data.common_int>=1) intelligence += data.common_int
-  if (data.common_luc>=1) luck += data.common_luc
-
+  vitality = vitality.add(data.common_vit).add(className=='warrior'?buyableEffect('main',18):0)
+  strength = strength.add(data.common_str).add(className=='warrior'?buyableEffect('main',18):0)
+  agility = agility.add(data.common_agi).add(className=='archer'?buyableEffect('main',15):0)
+  intelligence = intelligence.add(data.common_int).add(className=='intelligence'?buyableEffect('main',19):0)
+  luck = luck.add(data.common_luc)
+  crit_chance = crit_chance.add(className=='archer'?buyableEffect('main',16):0)
   if (vitality!=player.main.character.vitality)player.main.character.vitality = vitality
   if (strength!=player.main.character.strength)player.main.character.strength = strength
   if (agility!=player.main.character.agility)player.main.character.agility = agility
   if (intelligence!=player.main.character.intelligence)player.main.character.intelligence = intelligence
   if (luck!=player.main.character.luck)player.main.character.luck = luck
+  if (crit_chance!=player.main.character.crit_chance)player.main.character.crit_chance = crit_chance
 }
 function getMaxPlayerHP() {
   let level = player.main.character.level;
@@ -56,11 +63,9 @@ function updateCurrentHP(value) {
 function getMaxEnemyHP() {
   let stage = new Decimal(player.main.floor.floorNumber);
   let level = new Decimal(player.main.floor.currentMonster);
-  let monsterLevel = new Decimal(player.main.floor.monster.level);
   return new Decimal(10)
     .mul(new Decimal(1.15).pow(level.pow(0.95)))
-    .mul(monsterLevel.div(2).add(0.5))
-    .mul(new Decimal(2.546).pow(stage)).pow(player.main.floor.currentMonster>=player.main.floor.monsters?1.25:1);
+    .mul(new Decimal(stage.gte(10)?1.75:1.346).pow(stage)).pow(player.main.floor.currentMonster>=player.main.floor.monsters?1.25:1);
 }
 function updateEnemyCurrentHP(value) {
   player.main.floor.monster.healthPoints =
@@ -288,6 +293,20 @@ function getSlotBuffs() {
     }
   }
     if (player.main.cards.common_atk_amp>=1) data['attack'] *= 1.05**player.main.cards.common_atk_amp
+    switch (player.main.character.class) {
+      case 'warrior':
+        data['attack'] *= buyableEffect('main',12)
+        data['attack'] *= buyableEffect('main',21)
+        break
+      case 'archer':
+        data['attack'] *= buyableEffect('main',13)
+        data['attack'] *= buyableEffect('main',22)
+        break
+      case 'mage':
+        data['attack'] *= buyableEffect('main',14)
+        data['attack'] *= buyableEffect('main',23)
+        break
+    }
   return data;
 }
 function applySlotBuffs() {
@@ -490,7 +509,7 @@ function getItemDropChances() {
     chances = [2 + stage * 2, 1 + stage * 1.35, 0, 0, 0, 0, 0];
   }
   if (stage <= 10) {
-    chances = [10 * stage + luck, 0, 0, 0, 0, 0, 0];
+    chances = [9 * stage + luck, 0, 0, 0, 0, 0, 0];
   }
   for (i = 0; i < chances.length; i++) {
     if (chances[i] >= 0)
@@ -498,15 +517,40 @@ function getItemDropChances() {
         .add(1)
         .div(10)
         .add(1)
-        .pow(0.35 * (stage > 80 && i > 5 ? 2.5 : 1))
+        .pow(0.35 * (stage > 80 && i > 5 ? 2.5 : 1)).min(1)
         .toNumber();
     chances[i] = chances[i] / 100;
   }
   return chances;
 }
+/*------------------------
+  | Функции для престижа |
+  ------------------------*/
+  function getPrestigeCurrencyGain() {
+    let totalGold = player.main.totalGold
+    let level = player.main.character.level
+    let gain = new Decimal(2).mul(totalGold.root(10).max(1).pow(0.75)).mul(level.max(1).root(2).pow(1.5).add(1)).mul(level.gte(10)?level.max(1).root(1.5).pow(1.15).add(1):1)
+    return gain
+  }
 /*--------------
   | UI функции |
   --------------*/
+function getClassName(className) {
+  switch (className) {
+    case 'warrior':
+      return 'Воин'
+      break
+    case 'archer':
+      return 'Лучник'
+      break
+    case 'mage':
+      return 'Маг'
+      break
+    case 'none':
+      return 'Человек'
+      break
+  }
+}
 function getRarityName(rarity) {
   switch (rarity) {
     case 1:
@@ -718,29 +762,29 @@ function getStatName(stat, value) {
 function getPlayerStats(stat, value, bonus) {
   switch (stat) {
     case "add_strength":
-      return `<div class='statDiv'>Сила</div><div class='statDiv'>${format(player.main.character.strength, 0)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_strength, 2)} | x${format(1, 2)}</div>`;
+      return `<div class='statDiv'>Сила</div><div class='statDiv'>${format(player.main.character.strength, 0)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_strength, 2)} | -</div>`;
       break;
     case "add_vitality":
-      return `<div class='statDiv'>Живучесть:</div><div class='statDiv'>${format(player.main.character.vitality, 0)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_vitality, 2)} | x${format(1, 2)}</div>`;
+      return `<div class='statDiv'>Живучесть:</div><div class='statDiv'>${format(player.main.character.vitality, 0)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_vitality, 2)} | -</div>`;
       break;
     case "add_agility":
-      return `<div class='statDiv'>Ловкость:</div><div class='statDiv'>${format(player.main.character.agility, 0)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_agility, 2)} | x${format(1, 2)}</div>`;
+      return `<div class='statDiv'>Ловкость:</div><div class='statDiv'>${format(player.main.character.agility, 0)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_agility, 2)} | -</div>`;
       break;
     case "add_intelligence":
-      return `<div class='statDiv'>Мудрость:</div><div class='statDiv'>${format(player.main.character.intelligence, 0)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_intelligence, 2)} | x${format(1, 2)}</div>`;
+      return `<div class='statDiv'>Мудрость:</div><div class='statDiv'>${format(player.main.character.intelligence, 0)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_intelligence, 2)} | -</div>`;
       break;
     case "attack":
-      return `<div class='statDiv'>Атака:</div><div class='statDiv'>${format(value, 2)}</div><div class='statDiv'>${format(bonus, 2)} (${format(getSlotBuffs()["scaled_attack"], 2)})</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1, 2)}</div>`;
+      return `<div class='statDiv'>Атака:</div><div class='statDiv'></div><div class='statDiv'>${format(bonus, 2)} (${format(getSlotBuffs()["scaled_attack"], 2)})</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1.05**player.main.cards.common_atk_amp, 2)}</div>`;
       break;
     case "speed":
       return `<div class='statDiv'>Скорость атаки:</div><div class='statDiv'>${format(player.main.character.skill.cooldown ? player.main.character.skill.cooldown : 0, 2)}/сек</div><div class='statDiv'>
-        ${format(bonus != 0 ? bonus / 1 : 0, 2)}/сек</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1, 2)}</div>`;
+        ${format(bonus != 0 ? bonus / 1 : 0, 2)}/сек</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | -</div>`;
       break;
     case "defense":
       return `<div class='statDiv'>Защита:</div><div class='statDiv'>${format(value, 0)}</div><div class='statDiv'>${format(bonus, 0)} (${format(getSlotBuffs()["scaled_defense"], 2)})</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1, 2)}</div>`;
       break;
     case "luck":
-      return `<div class='statDiv'>Удача:</div><div class='statDiv'>${format(value, 0)}</div><div class='statDiv'>${format(bonus, 0)} (${format(getSlotBuffs()["scaled_luck"], 2)})</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_luck, 2)} | x${format(1, 2)}</div>`;
+      return `<div class='statDiv'>Удача:</div><div class='statDiv'>${format(value, 0)}</div><div class='statDiv'>${format(bonus, 0)} (${format(getSlotBuffs()["scaled_luck"], 2)})</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_luck, 2)} | -</div>`;
       break;
     case "fire_attack":
       return `<div class='statDiv'>Огненный урон:</div><div class='statDiv'>${format(value, 0)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1, 2)}</div>`;
@@ -772,7 +816,7 @@ function toggleGridAndSlot(type) {
     let slotData = player.main.equipment[type];
     let temp1 = player.main.equipment[type].forgeLevel;
     let temp2 = player.main.equipment[type].forgeMult;
-
+    let rarity = player.main.equipment[type].forgeRarity;
     player.main.equipment[type] = getGridData(
       "main",
       player.main.checkToggleGridId
@@ -781,12 +825,12 @@ function toggleGridAndSlot(type) {
 
     if (
       player.main.equipment[type].rarity >
-        player.main.equipment[type].forgeRarity ||
+        rarity ||
       player.main.equipment[type].rarity <
-        player.main.equipment[type].forgeRarity
+        rarity
     ) {
-      player.main.equipment[type].forgeLevel = 0;
-      player.main.equipment[type].forgeMult = 1;
+      player.main.equipment[type].forgeLevel = new Decimal(0);
+      player.main.equipment[type].forgeMult = new Decimal(1);
     } else {
       player.main.equipment[type].forgeLevel = temp1;
       player.main.equipment[type].forgeMult = temp2;
@@ -824,15 +868,18 @@ function toggleGridAndSlot(type) {
     player.main.checkToggleGridId != "" &&
     player.main.equipment[type].item_name != ""
   ) {
+    let rarity = player.main.equipment[type].forgeRarity;
+    let temp1 = player.main.equipment[type].forgeLevel;
+    let temp2 = player.main.equipment[type].forgeMult;
     let slotData = player.main.equipment[type];
     let gridable = player.main.grid[player.main.checkToggleGridId];
     player.main.grid[player.main.checkToggleGridId] = slotData;
     player.main.equipment[type] += gridable;
     if (
       player.main.equipment[type].rarity >
-        splayer.main.equipment[type].forgeRarity ||
+        rarity ||
       player.main.equipment[type].rarity <
-        player.main.equipment[type].forgeRarity
+        rarity
     ) {
       player.main.equipment[type].forgeLevel = temp1;
       player.main.equipment[type].forgeMult = temp2;
@@ -866,11 +913,23 @@ function getCard(id, skillId = undefined) {
   player.main.character.skill_choose = {};
   player.inCardChoose = false;
 }
+function setClass(className) {
+  player.main.character.class = className
+  player.inClassChoose = false;
+}
 //Функция для основных кнопок
 function setSubtab(id) {
   player.tab = "main";
   player.subtabs[player.tab].mainTabs = "Inventory";
   switch (id) {
+    case "tree":
+      player.tab = "main";
+      player.subtabs[player.tab].mainTabs = "Tree";
+      break;
+    case "pres":
+      player.tab = "main";
+      player.subtabs[player.tab].mainTabs = "Prestige";
+      break;
     case "inv":
       player.tab = "main";
       player.subtabs[player.tab].mainTabs = "Inventory";
@@ -887,7 +946,7 @@ function setSubtab(id) {
       player.tab = "main";
       player.subtabs[player.tab].mainTabs = "Forge";
       break;
-    case "prestige":
+    case "pres":
       player.tab = "main";
       player.subtabs[player.tab].mainTabs = "Prestige";
       break;
@@ -1440,6 +1499,8 @@ addLayer("main", {
       unlocked: true,
       points: new Decimal(0),
       gold: new Decimal(0),
+      fame_coins: new Decimal(0),
+      totalGold: new Decimal(0),
       checkToggleGridId: "",
       checkToggleGridId_2: "",
       checkToggleSlotId: "",
@@ -1463,7 +1524,6 @@ addLayer("main", {
         currentMonster: 1,
         totalExp: 0,
         totalGold: 0,
-        rarities: [0],
         monster: {
           healthPoints: new Decimal(0),
           level: new Decimal(1),
@@ -1584,8 +1644,8 @@ addLayer("main", {
         water_attack: new Decimal(0),
         poison_attack: new Decimal(0),
         luck: new Decimal(0),
-        crit: new Decimal(0),
-        crit_chance: new Decimal(0),
+        crit: 0,
+        crit_chance: 0,
         level: new Decimal(1),
         exp: new Decimal(0),
         skill: {},
@@ -2664,6 +2724,1132 @@ addLayer("main", {
         };
       },
     },
+    12: {
+      purchaseLimit: 3,
+      cost(x) {
+        return new Decimal(15).mul(x.add(1));
+      },
+      reqClass: "warrior",
+      upgId:'str_1',
+      display() {
+        return "";
+      },
+      unlocked() {
+        return player.main.floor.floorNumber>10;
+      },
+      canAfford() {
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==this.reqClass&&player[this.layer].buyables[this.id].lt();
+      },
+      buy() {
+        player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
+        setBuyableAmount(
+          this.layer,
+          this.id,
+          getBuyableAmount(this.layer, this.id).add(1)
+        );
+      },
+      tooltip() {
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество воина I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Атака +50% за уровень.<br>Текущий бонус: +${(this.effect()-1)*100}% к атаке.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+      },
+      effect(x=player[this.layer].buyables[this.id]) {
+        let eff = new Decimal(0.5).mul(x)
+        return eff.add(1)
+      },
+      tooltipStyle() {
+        return {
+          width:'200px',
+          'max-height':'150px',
+          border: '2px solid white',
+          background: '#0f0f0f',
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+ }
+      },
+      style() {
+         if (this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid lime",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+         else if (player[this.layer].buyables[this.id].gte(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid yellow",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+        else if (player.main.character.class!=this.reqClass) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(108, 3, 3, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+        else return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(80, 80, 80, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+      },
+
+    },
+    13: {
+      purchaseLimit: 3,
+      reqClass:'archer',
+      cost(x) {
+        return new Decimal(15).mul(x.add(1));
+      },
+      upgId:'str_2',
+      display() {
+        return "";
+      },
+      unlocked() {
+        return player.main.floor.floorNumber>10;
+      },
+      canAfford() {
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==this.reqClass;
+      },
+      buy() {
+        player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
+        setBuyableAmount(
+          this.layer,
+          this.id,
+          getBuyableAmount(this.layer, this.id).add(1)
+        );
+      },
+      tooltip() {
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество лучника I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Атака +50% за уровень.<br>Текущий бонус: +${(this.effect()-1)*100}% к атаке <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+      },
+      effect(x=player[this.layer].buyables[this.id]) {
+        let eff = new Decimal(0.5).mul(x)
+        return eff.add(1)
+      },
+      tooltipStyle() {
+        return {
+          width:'200px',
+          'max-height':'150px',
+          border: '2px solid white',
+          background: '#0f0f0f',
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+ }
+      },
+      style() {
+         if (this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid lime",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+         else if (player[this.layer].buyables[this.id].gte(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid yellow",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+        else if (player.main.character.class!=this.reqClass) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(108, 3, 3, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+        else return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(80, 80, 80, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+      },
+
+    },
+    14: {
+      purchaseLimit: 3,
+      reqClass:'mage',
+      cost(x) {
+        return new Decimal(15).mul(x.add(1));
+      },
+      upgId:'str_3',
+      display() {
+        return "";
+      },
+      unlocked() {
+        return player.main.floor.floorNumber>10;
+      },
+      canAfford() {
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==this.reqClass;
+      },
+      buy() {
+        player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
+        setBuyableAmount(
+          this.layer,
+          this.id,
+          getBuyableAmount(this.layer, this.id).add(1)
+        );
+      },
+      tooltip() {
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество мага I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Атака +50% за уровень.<br>Текущий бонус: +${(this.effect()-1)*100}% к атаке <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+      },
+      effect(x=player[this.layer].buyables[this.id]) {
+        let eff = new Decimal(0.5).mul(x)
+        return eff.add(1)
+      },
+      tooltipStyle() {
+        return {
+          width:'200px',
+          'max-height':'150px',
+          border: '2px solid white',
+          background: '#0f0f0f',
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+ }
+      },
+      style() {
+         if (this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid lime",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+         else if (player[this.layer].buyables[this.id].gte(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid yellow",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+        else if (player.main.character.class!=this.reqClass) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(108, 3, 3, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+        else return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(80, 80, 80, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+      },
+
+    },
+    
+15: {
+      purchaseLimit: 5,
+      reqClass:'archer',
+      cost(x) {
+        return new Decimal(35).mul(x.div(5).add(1));
+      },
+      branches: [[13, (this.canAfford?'lime':'#464646ff'),'4']],
+      upgId:'agi',
+      display() {
+        return "";
+      },
+      unlocked() {
+        return player.main.floor.floorNumber>10;
+      },
+      canAfford() {
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==this.reqClass&& player.main.buyables[13].gte(3);
+      },
+      buy() {
+        player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
+        setBuyableAmount(
+          this.layer,
+          this.id,
+          getBuyableAmount(this.layer, this.id).add(1)
+        );
+      },
+      tooltip() {
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Теневой бег I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Ловкость +1 за уровень.<br>Текущий бонус: +${format(this.effect())} Ловкости <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+      },
+      effect(x=player[this.layer].buyables[this.id]) {
+        let eff = x
+        return eff
+      },
+      tooltipStyle() {
+        return {
+          width:'200px',
+          'max-height':'150px',
+          border: '2px solid white',
+          background: '#0f0f0f',
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+ }
+      },
+      style() {
+         if (this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid lime",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+         else if (player[this.layer].buyables[this.id].gte(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid yellow",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+        else if (player.main.character.class!=this.reqClass) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(108, 3, 3, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+        else return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(80, 80, 80, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+      },
+
+    },
+16: {
+      purchaseLimit: 2,
+      reqClass:'archer',
+      cost(x) {
+        return new Decimal(50).mul(x.div(2).add(1));
+      },
+      branches: [[13, (this.canAfford?'lime':'#464646ff'),'4']],
+      upgId:'crit_c',
+      display() {
+        return "";
+      },
+      unlocked() {
+        return player.main.floor.floorNumber>10;
+      },
+      canAfford() {
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==this.reqClass&& player.main.buyables[13].gte(3);
+      },
+      buy() {
+        player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
+        setBuyableAmount(
+          this.layer,
+          this.id,
+          getBuyableAmount(this.layer, this.id).add(1)
+        );
+      },
+      tooltip() {
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Меткий выстрел I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Шанс крита +1% за уровень.<br>Текущий бонус: +${format(this.effect())}% к шансу крита.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+      },
+      effect(x=player[this.layer].buyables[this.id]) {
+        let eff = x
+        return eff
+      },
+      tooltipStyle() {
+        return {
+          width:'200px',
+          'max-height':'150px',
+          border: '2px solid white',
+          background: '#0f0f0f',
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+ }
+      },
+      style() {
+         if (this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid lime",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+         else if (player[this.layer].buyables[this.id].gte(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid yellow",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+        else if (player.main.character.class!=this.reqClass) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(108, 3, 3, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+        else return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(80, 80, 80, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+      },
+
+    },
+  17: {
+      purchaseLimit: 5,
+      reqClass:'warrior',
+      cost(x) {
+        return new Decimal(35).mul(x.div(5).add(1));
+      },
+      branches: [[12, (this.canAfford?'lime':'#464646ff'),'4']],
+      upgId:'body',
+      display() {
+        return "";
+      },
+      unlocked() {
+        return player.main.floor.floorNumber>10;
+      },
+      canAfford() {
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==this.reqClass&& player.main.buyables[12].gte(3);
+      },
+      buy() {
+        player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
+        setBuyableAmount(
+          this.layer,
+          this.id,
+          getBuyableAmount(this.layer, this.id).add(1)
+        );
+      },
+      tooltip() {
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Закалка тела I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Сила +1 за уровень.<br>Текущий бонус: +${format(this.effect())} Силы <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+      },
+      effect(x=player[this.layer].buyables[this.id]) {
+        let eff = x
+        return eff
+      },
+      tooltipStyle() {
+        return {
+          width:'200px',
+          'max-height':'150px',
+          border: '2px solid white',
+          background: '#0f0f0f',
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+ }
+      },
+      style() {
+         if (this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid lime",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+         else if (player[this.layer].buyables[this.id].gte(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid yellow",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+        else if (player.main.character.class!=this.reqClass) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(108, 3, 3, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+        else return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(80, 80, 80, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+      },
+
+    },
+18: {
+      purchaseLimit: 5,
+      reqClass:'warrior',
+      cost(x) {
+        return new Decimal(35).mul(x.div(5).add(1));
+      },
+      branches: [[12, (this.canAfford?'lime':'#464646ff'),'4']],
+      upgId:'body_2',
+      display() {
+        return "";
+      },
+      unlocked() {
+        return player.main.floor.floorNumber>10;
+      },
+      canAfford() {
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==this.reqClass&& player.main.buyables[12].gte(3);
+      },
+      buy() {
+        player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
+        setBuyableAmount(
+          this.layer,
+          this.id,
+          getBuyableAmount(this.layer, this.id).add(1)
+        );
+      },
+      tooltip() {
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Стальная кожа I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Живучесть +1 за уровень.<br>Текущий бонус: +${format(this.effect())} Живучести.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+      },
+      effect(x=player[this.layer].buyables[this.id]) {
+        let eff = x
+        return eff
+      },
+      tooltipStyle() {
+        return {
+          width:'200px',
+          'max-height':'150px',
+          border: '2px solid white',
+          background: '#0f0f0f',
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+ }
+      },
+      style() {
+         if (this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid lime",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+         else if (player[this.layer].buyables[this.id].gte(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid yellow",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+        else if (player.main.character.class!=this.reqClass) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(108, 3, 3, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+        else return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(80, 80, 80, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+      },
+
+    },
+19: {
+      purchaseLimit: 5,
+      reqClass:'mage',
+      cost(x) {
+        return new Decimal(35).mul(x.div(5).add(1));
+      },
+      branches: [[14, '#464646ff','4']],
+      upgId:'int',
+      display() {
+        return "";
+      },
+      unlocked() {
+        return player.main.floor.floorNumber>10;
+      },
+      canAfford() {
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==this.reqClass && player.main.buyables[14].gte(3);
+      },
+      buy() {
+        player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
+        setBuyableAmount(
+          this.layer,
+          this.id,
+          getBuyableAmount(this.layer, this.id).add(1)
+        );
+      },
+      tooltip() {
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Фолиант мудрости I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Мудрость +1 за уровень.<br>Текущий бонус: +${format(this.effect())} Мудрости <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+      },
+      effect(x=player[this.layer].buyables[this.id]) {
+        let eff = x
+        return eff
+      },
+      tooltipStyle() {
+        return {
+          width:'200px',
+          'max-height':'150px',
+          border: '2px solid white',
+          background: '#0f0f0f',
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+ }
+      },
+      style() {
+         if (this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid lime",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+         else if (player[this.layer].buyables[this.id].gte(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid yellow",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+        else if (player.main.character.class!=this.reqClass) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(108, 3, 3, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+        else return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(80, 80, 80, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+      },
+
+    },
+  20: {
+      purchaseLimit: 2,
+      reqClass:'mage',
+      cost(x) {
+        return new Decimal(50).mul(x.div(2).add(1));
+      },
+      branches: [[14, (this.canAfford?'lime':'#464646ff'),'4']],
+      upgId:'body_2',
+      display() {
+        return "";
+      },
+      unlocked() {
+        return player.main.floor.floorNumber>10;
+      },
+      canAfford() {
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==this.reqClass&& player.main.buyables[14].gte(3);
+      },
+      buy() {
+        player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
+        setBuyableAmount(
+          this.layer,
+          this.id,
+          getBuyableAmount(this.layer, this.id).add(1)
+        );
+      },
+      tooltip() {
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Мастер стихий I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+1 ко всему стихийному урону за уровень.<br>Текущий бонус: +${format(this.effect())} ко всему стихийному урону.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+      },
+      effect(x=player[this.layer].buyables[this.id]) {
+        let eff = x
+        return eff
+      },
+      tooltipStyle() {
+        return {
+          width:'200px',
+          'max-height':'150px',
+          border: '2px solid white',
+          background: '#0f0f0f',
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+ }
+      },
+      style() {
+         if (this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid lime",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+         else if (player[this.layer].buyables[this.id].gte(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid yellow",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+        else if (player.main.character.class!=this.reqClass) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(108, 3, 3, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+        else return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(80, 80, 80, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+      },
+
+    },
+21: {
+      purchaseLimit: 10,
+      reqClass:'warrior',
+      cost(x) {
+        return new Decimal(100).mul(x.div(5).add(1));
+      },
+      branches: [[17, (this.canAfford?'lime':'#464646ff'),'4'],[18, (this.canAfford?'lime':'#464646ff'),'4']],
+      upgId:'str_1',
+      display() {
+        return "";
+      },
+      unlocked() {
+        return player.main.floor.floorNumber>10;
+      },
+      canAfford() {
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==this.reqClass&& player.main.buyables[17].gte(5)&& player.main.buyables[18].gte(5);
+      },
+      buy() {
+        player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
+        setBuyableAmount(
+          this.layer,
+          this.id,
+          getBuyableAmount(this.layer, this.id).add(1)
+        );
+      },
+      tooltip() {
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество воина II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+100% к атаке персонажа.<br>Текущий бонус: +${format((this.effect()-1)*100)}% к атаке.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+      },
+      effect(x=player[this.layer].buyables[this.id]) {
+        let eff = x
+        return eff.add(1)
+      },
+      tooltipStyle() {
+        return {
+          width:'200px',
+          'max-height':'150px',
+          border: '2px solid white',
+          background: '#0f0f0f',
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+ }
+      },
+      style() {
+         if (this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid lime",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+         else if (player[this.layer].buyables[this.id].gte(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid yellow",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+        else if (player.main.character.class!=this.reqClass) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(108, 3, 3, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+        else return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(80, 80, 80, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+      },
+
+    },
+22: {
+      purchaseLimit: 10,
+      reqClass:'archer',
+      cost(x) {
+        return new Decimal(100).mul(x.div(5).add(1));
+      },
+      branches: [[15, (this.canAfford?'lime':'#464646ff'),'4'],[16, (this.canAfford?'lime':'#464646ff'),'4']],
+      upgId:'str_2',
+      display() {
+        return "";
+      },
+      unlocked() {
+        return player.main.floor.floorNumber>10;
+      },
+      canAfford() {
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==this.reqClass&& player.main.buyables[15].gte(5)&& player.main.buyables[16].gte(5);
+      },
+      buy() {
+        player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
+        setBuyableAmount(
+          this.layer,
+          this.id,
+          getBuyableAmount(this.layer, this.id).add(1)
+        );
+      },
+      tooltip() {
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество лучника II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+100% к атаке персонажа.<br>Текущий бонус: +${format((this.effect()-1)*100)}% к атаке.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+      },
+      effect(x=player[this.layer].buyables[this.id]) {
+        let eff = x
+        return eff.add(1)
+      },
+      tooltipStyle() {
+        return {
+          width:'200px',
+          'max-height':'150px',
+          border: '2px solid white',
+          background: '#0f0f0f',
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+ }
+      },
+      style() {
+         if (this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid lime",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+         else if (player[this.layer].buyables[this.id].gte(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid yellow",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+        else if (player.main.character.class!=this.reqClass) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(108, 3, 3, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+        else return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(80, 80, 80, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+      },
+
+    },
+23: {
+      purchaseLimit: 10,
+      reqClass:'mage',
+      cost(x) {
+        return new Decimal(100).mul(x.div(5).add(1));
+      },
+      branches: [[19, (this.canAfford?'lime':'#464646ff'),'4'],[20, (this.canAfford?'lime':'#464646ff'),'4']],
+      upgId:'str_3',
+      display() {
+        return "";
+      },
+      unlocked() {
+        return player.main.floor.floorNumber>10;
+      },
+      canAfford() {
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==this.reqClass&& player.main.buyables[19].gte(5)&& player.main.buyables[20].gte(5);
+      },
+      buy() {
+        player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
+        setBuyableAmount(
+          this.layer,
+          this.id,
+          getBuyableAmount(this.layer, this.id).add(1)
+        );
+      },
+      tooltip() {
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество мага II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+100% к атаке персонажа.<br>Текущий бонус: +${format((this.effect()-1)*100)}% к атаке.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+      },
+      effect(x=player[this.layer].buyables[this.id]) {
+        let eff = x
+        return eff.add(1)
+      },
+      tooltipStyle() {
+        return {
+          width:'200px',
+          'max-height':'150px',
+          border: '2px solid white',
+          background: '#0f0f0f',
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+ }
+      },
+      style() {
+         if (this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid lime",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+         else if (player[this.layer].buyables[this.id].gte(this.purchaseLimit)) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid yellow",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        };
+        else if (player.main.character.class!=this.reqClass) return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(108, 3, 3, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+        else return {
+          width: "50px",
+          height: "50px",
+          border: "2px solid rgba(80, 80, 80, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          background: "#0f0f0f",
+          "background-image": `url('resources/${this.upgId}.png')`,
+        }
+      },
+
+    },
   },
   skill_grid: {
     rows: 1,
@@ -2910,6 +4096,55 @@ addLayer("main", {
   ],
   //Вкладки
   tabFormat: {
+      Tree: {
+      content: [
+            [
+              "display-text",
+              function () {
+                let table = `<button class='prestige_tab'; onClick='setSubtab("pres")'>Монеты Славы</button>
+                <button class='prestige_tab'; onClick='setSubtab("tree")'>Дерево Усилений</button>`;
+                return (table);
+              },
+            ],
+            ['blank',['10px','50px']],
+            [
+              "display-text",
+              function () {
+                let table = `<br>Улучшайте персонажа, покупая улучшения в Древе Усилений за Монеты Славы.`;
+                return (table);
+              },
+            ],
+            ['blank',['10px','50px']],
+            ['row',[['buyable',[13]],['blank',['170px','0px']],['buyable',[12]],['blank',['170px','0px']],['buyable',[14]]]],
+            ['blank',['10px','25px']],
+            ['row',[['buyable',[15]],['blank',['30px','0px']],['buyable',[16]],['blank',['90px','0px']],['buyable',[17]],['blank',['30px','0px']],['buyable',[18]]
+            ,['blank',['90px','0px']],['buyable',[19]],['blank',['30px','0px']],['buyable',[20]]]],
+            ['blank',['10px','25px']],
+            ['row',[['buyable',[22]],['blank',['170px','0px']],['buyable',[21]],['blank',['170px','0px']],['buyable',[23]]]],
+        ],
+    },
+    Prestige: {
+      content: [
+            [
+              "display-text",
+              function () {
+                let table = `<button class='prestige_tab'; onClick='setSubtab("pres")'>Монеты Славы</button>
+                <button class='prestige_tab'; onClick='setSubtab("tree")'>Дерево Усилений</button>`;
+                return (table);
+              },
+            ],
+            ['blank',['10px','50px']],
+            [
+              "display-text",
+              function () {
+                let table = `<div style='background-color: rgba(23, 23, 23, 1); width:90%; height:20%; padding: 0px 5px 15px 5px; border:3px solid gold'><br>Сбросьте всё полученное золото, уровень, карты улучшения и экипировку в инвентаре <br>(не одетую) и взамен получите Монеты Славы.
+                 <br>Полученные Монеты Славы можно потратить на различные улучшения в<br>Дереве Усилений.<br><br>Текущее количество <span style='color:orange'>Монет Славы</span> для получения: <b style='color:orange'>${format(getPrestigeCurrencyGain())}</b></div>`;
+                return (table);
+              },
+            ],
+            ['blank',['10px','100px']],
+        ],
+    },
     Player: {
       content: [
         [
@@ -2927,7 +4162,7 @@ addLayer("main", {
                   table += ` ${getPlayerStats(i, playerData[i], inventory[i])}<br>`};
                 }
                 return (
-                  `<div class='statDiv' style='padding: 5px 5px 5px 5px; border:3px solid transparent; border-image: url(resources/border.png); border-image-slice:20%''><h2>Уровень персонажа - [${player.main.character.level}]</h2></div><br><br>
+                  `<div class='statDiv' style='padding: 5px 5px 5px 5px; border:3px solid transparent; border-image: url(resources/border.png); border-image-slice:20%''><h2>Уровень персонажа [${getClassName(player.main.character.class)}] - [${player.main.character.level}]</h2></div><br><br>
                     <br><div style='border: 4px solid transparent;border-image: url(resources/border.png); border-image-slice:20%''>
                     <div class='statDiv'>Хар-ка</div><div class='statDiv'>Персонаж</div><div class='statDiv'>Экипировка</div><div class='statDiv'>Множ. от уровня/карт улучшения</div><br>` +
                   table +
@@ -3024,13 +4259,13 @@ addLayer("main", {
                     return (
                       `<div style='background-color: #000000b2; padding: 5px 5px 5px 5px; border:3px solid transparent; border-image: url(resources/border.png); border-image-slice:20%'>
                     <h3>Множитель усиления</h3><hr>` +
-                      table +
+                      (player.main.checkToggleSlotId!=''?table:"<span style='color:rgba(84, 84, 84, 1); font-size:12px'>Выберите снаряжение для улучшения</span>") +
                       "</div>"
                     );
                   },
                 ],
                 "blank",
-                "buyables",
+                ["buyable", [11]],
               ],
               { "margin-right": "40px" },
             ],
@@ -3047,19 +4282,18 @@ addLayer("main", {
         ],
       ],
     },
-    Prestige: {
-      content: [["column", ["blank"]]],
-    },
   },
   update(diff) {
-    if (player.inCardChoose) {
+    if (player.inCardChoose|| player.inClassChoose) {
       getLevelMultipliers("warrior");
+      updatePlayerStats()
       updateSlotStats();
       for (i in player.main.clickables)
         getScaleBuffs(true, tmp.main.clickables[i].type);
       return;
     }
     getLevelMultipliers("warrior");
+    updatePlayerStats()
     updateSlotStats();
     if (player.main.character.skill.fire_tickdamage)
       player.main.cooldowns.burntCooldown += diff;
@@ -3068,7 +4302,7 @@ addLayer("main", {
       player.main.character.healthPoints.gt(getMaxPlayerHP())
     )
       player.main.character.healthPoints = new Decimal(getMaxPlayerHP());
-    if (player.main.floor.monster.healthPoints.lte(0))
+    if (player.main.floor.monster.healthPoints.lte(0)||player.main.floor.monster.healthPoints.gt(getMaxEnemyHP()))
       player.main.floor.monster.healthPoints = new Decimal(getMaxEnemyHP());
     player.main.character.exp = player.main.character.exp.add(
       new Decimal(5).times(diff)
@@ -3080,15 +4314,21 @@ addLayer("main", {
       getPlayerAttackSpeed() > 0
     ) {
       updateCurrentHP(player.main.floor.monster.attack);
-      if (!player.main.character.skill.fire_tickdamage)
-        updateEnemyCurrentHP(getTotalAttack());
-      if (player.main.character.skill.fire_tickdamage)
+      if (!player.main.character.skill.fire_tickdamage) {
+        let critCheck = Math.random()
+        let attack = getTotalAttack()
+        if (critCheck<getCritStats().crit_chance) attack*=getCritStats().crit
+        updateEnemyCurrentHP(attack);
+      }
+      else
         player.main.cooldowns.burningMax = player.main.character.skill.fire;
       player.main.cooldowns.attackCooldown = 0;
     }
     if (
       player.main.cooldowns.burntCooldown >= 1 &&
-      player.main.cooldowns.burningMax > 0
+      player.main.cooldowns.burningMax > 0 ||
+      (!player.main.character.skill.fire_tickdamage &&
+      player.main.cooldowns.burningMax > 0)
     ) {
       updateEnemyCurrentHP(getTotalAttack());
       player.main.cooldowns.burntCooldown = 0;

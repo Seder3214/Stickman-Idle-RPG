@@ -21,6 +21,7 @@ function startPlayerBase() {
 		keepGoing: false,
 		hasNaN: false,
 		inCardChoose:false,
+		inClassChoose: true,
 
 		points: modInfo.initialStartPoints,
 		subtabs: {},

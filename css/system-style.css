@@ -116,7 +116,22 @@ td {
 .remove:hover {
 	transform: scale(1.1, 1.1);
 }
-
+.prestige_tab {
+	width:150px; 
+	height:25px;
+	border: 2px solid white;
+	color: white;
+	border-radius: 10px; 
+	background-color: rgba(0,0,0,0);
+	display: inline-block;
+	color: white; 
+	text-align: center;
+}
+.prestige_tab:hover {
+	cursor: pointer;
+	transform: scale(1.05);
+	text-shadow: 0 0 7px var(--color);
+}
 .col {
 	min-width: 59.5%;
 	max-width: 59.5%;

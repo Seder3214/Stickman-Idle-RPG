@@ -55,6 +55,30 @@ addLayer("tree-tab", {
                         return table+"</div>"
                     }
                 }],
+                ["display-text", function() {
+                    let table = "<span style='display:inline;'>Для начала игры выберите класс персонажа, за которого хотите играть.<br></span><br><div style='width:90%; background:rgba(21, 21, 21, 1); height:500px; align-items:center; justify-content:center; display:flex; border:4px solid white; opacity:1'><br>"
+                    if (player.inClassChoose) {
+                        let x = ['none', 'warrior','archer','mage']
+                        let xShow = ['none','Воин','Лучник','Маг']
+                        let desc = ['','Сильный воин с мечом. Имеет повышенную живучесть и силу, что позволит наносить больше урона и получать меньше урона от монстров! <br> Основные бонусы: +1 к силе и живучести.',
+                            'Ловкий лучник. Имеет повышенную ловкость и меткость, что позволяет ему наносить быстрые и точные удары в слабые места монстров, а также уворачиваться от атак врагов.<br> Основные бонусы: +1 к ловкости и +5% к шансу крита.',
+                            'Могучий маг. Обладает великим умом, что позволяет ему использовать различную магию четырёх стихий взамен на ману.<br>Основные бонусы: +1 к мудрости и всему стихийному урону.']
+                        let stats = ['','Живучесть: 2, Сила: 2<br>Мудрость: 1, Ловкость: 1<br>Удача: 1',
+                            'Живучесть: 1, Сила: 1<br>Мудрость: 1, Ловкость: 2<br>Шанс крит. удара: 5%, Удача: 2',
+                            'Живучесть: 1, Сила: 1<br>Мудрость: 2, Ловкость: 1<br>Удача: 2<br>Огненный урон: 1, Водный урон: 1<br>Урон молнией: 1, Земляной урон: 1']
+                        for (i=1;i<4;i++) {
+                            table+=`<div style='width:250px; height:400px; align-items:center;display:flow; justify-content:center; border:4px><span style='display:inline;'>${xShow[i]}</span><hr><br>
+                            <i style='font-size:12px'>${desc[i]}</i><br><br><hr><br>
+                            <b style='font-size:12px'>Характеристики класса:</b><br><br>
+                            <span style='font-size:12px'>Бонусы к основным характеристикам (живучесть, сила, ловкость и мудрость) также увеличивают множитель увеличения этих характеристик в 2 раза.</span><br><br>
+                            <b style='font-size:12px'>${stats[i]}</b><br><br>
+                            <button onClick='setClass("${x[i]}")'style='border:2px solid rgba(38, 255, 0, 1);
+                             width:200px; height:30px; background:rgba(17, 36, 10, 1); font-size:14px; color:rgba(142, 255, 130, 1); cursor:pointer;'>Выбрать класс
+                             </button></div>`
+                        }
+                        return table+"</div>"
+                    }
+                }],
                 ],
                 
     previousTab: "",

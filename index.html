@@ -48,9 +48,10 @@
 			<h1>Loading... (If this takes too long it means there was a serious error!)←</h1>
 		</div>
 		<button v-if="tmp.other.splitScreen" class="backButton" style="background: url('resources/button_inventory-2.png'); background-repeat: no-repeat; background-position: 50% 50%;" onclick="setSubtab('inv')" ></button>	
-		<button v-if="tmp.other.splitScreen" class="backButton" style="background: url('resources/button_empty.png'); background-repeat: no-repeat; background-position: 50% 50%;top:70% "onclick="setSubtab('player')" >P</button>	
-		<button v-if="tmp.other.splitScreen" class="backButton"style="background: url('resources/button_empty.png'); background-repeat: no-repeat; background-position: 50% 50%;top:60%" onclick="setSubtab('skill')">S</button>
-		<button v-if="tmp.other.splitScreen" class="backButton"style="background: url('resources/button_empty.png'); background-repeat: no-repeat; background-position: 50% 50%;top:50%" onclick="setSubtab('forge')">F</button>	
+		<button v-if="tmp.other.splitScreen" class="backButton" style="background: url('resources/button_empty.png'); background-repeat: no-repeat; background-position: 50% 50%;top:70% "onclick="setSubtab('player')" >П</button>	
+		<button v-if="tmp.other.splitScreen" class="backButton"style="background: url('resources/button_empty.png'); background-repeat: no-repeat; background-position: 50% 50%;top:60%" onclick="setSubtab('skill')">Н</button>
+		<button v-if="tmp.other.splitScreen" class="backButton"style="background: url('resources/button_empty.png'); background-repeat: no-repeat; background-position: 50% 50%;top:50%" onclick="setSubtab('forge')">К</button>
+		<button v-if="tmp.other.splitScreen" class="backButton"style="background: url('resources/button_empty.png'); background-repeat: no-repeat; background-position: 50% 50%;top:40%" onclick="setSubtab('pres')">М</button>	
 		<div v-bind:style="" class="vl" v-if="player.navTab !== 'none' && tmp.other.splitScreen && player.tab!='none' && !(tmp.gameEnded && !player.keepGoing)">
 		</div>
 		<div v-if="(tmp.gameEnded && !player.keepGoing)" class="fullWidth">
@@ -72,7 +73,7 @@
 			<br><br>
 		</div>
 
-		<div id="treeOverlay" v-if="!(tmp.gameEnded && !player.keepGoing) && (player.tab === 'none' || tmp.other.splitScreen || !readData(layoutInfo.showTree))" class="treeOverlay" onscroll="resizeCanvas()"
+		<div id="treeOverlay" style='background-image: url("resources/hell_tower2.jpg"); background-repeat: no-repeat; background-size: cover; background-clip: content-box;'v-if="!(tmp.gameEnded && !player.keepGoing) && (player.tab === 'none' || tmp.other.splitScreen || !readData(layoutInfo.showTree))" class="treeOverlay" onscroll="resizeCanvas()"
 			v-bind:class="{ 
 			fullWidth: (player.tab == 'none' || player.navTab == 'none'), 
 			col: (player.tab !== 'none' && player.navTab !== 'none'), 
@@ -117,7 +118,7 @@
 					<particle :data="particle" :index="index" v-bind:key="'b' + particle.id"></particle>
 				</div>
 		</div>
-		<div style="background-image:url(resources/background.jpg);background-repeat:auto; background-position:center"v-bind:style="tmp.other.splitScreen?{'left':'60%'}:{'left':'0%'}" v-if="player.navTab !== 'none' && player.tab !== 'none' && !(tmp.gameEnded && !player.keepGoing)" onscroll="resizeCanvas()" v-bind:class="{ fullWidth: player.navTab == 'none' || !tmp.other.splitScreen || !readData(layoutInfo.showTree), col: player.navTab != 'none', right: player.navTab != 'none', fast: true, tab: true}">
+		<div style=" background-repeat:auto; background-position:center;"v-bind:style="tmp.other.splitScreen?{'left':'60%'}:{'left':'0%'}" v-if="player.navTab !== 'none' && player.tab !== 'none' && !(tmp.gameEnded && !player.keepGoing)" onscroll="resizeCanvas()" v-bind:class="{ fullWidth: player.navTab == 'none' || !tmp.other.splitScreen || !readData(layoutInfo.showTree), col: player.navTab != 'none', right: player.navTab != 'none', fast: true, tab: true}">
 			
 			<div v-for="layer in LAYERS" >
 				<div v-if="player.tab==layer">
