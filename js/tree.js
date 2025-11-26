@@ -30,14 +30,15 @@ addLayer("tree-tab", {
             background-position: 50% 50%; text-align: center;'><b>${format(player.main.gold)}</b></img></div><div style='background-color: red; border: 2px solid white; width: 150px; height:20px'>${format(player.main.character.healthPoints,2)}/${format(getMaxPlayerHP(),2)}</div>
                     <p><div style='background-color: blue; border: 2px solid white; width: 100px; height:20px'>Player MP</div><br>
                     <div style='background:linear-gradient(to right, lime ${(player.main.cooldowns.attackCooldown/(getPlayerAttackSpeed()))*100}%, grey 1px); width: 100px; height:2px'></div>`}],
-                ['blank',['750px','50px']],
+                ['blank',['650px','50px']],
                 ["display-text", function() {
                     let debuffs = ``
                     if (player.main.cooldowns.burningMax>=1) debuffs+=`<div>Fire: ${player.main.cooldowns.burningMax}</div><br>`
                     return debuffs+`
+                    <b style='font-size:12px'>${player.main.floor.monster.name}</b>
                     <div style='background-color: red; border: 2px solid white; width: 150px; height:20px'>${format(player.main.floor.monster.healthPoints,2)}/${format(getMaxEnemyHP(),2)}</div>
                     <p><div style='background-color: blue; border: 2px solid white; width: 100px; height:20px'>Enemy MP</div><br>
-                    <div style='background-color: lime; width: 100px; height:2px'></div>`}]]],
+                    <div style='background:linear-gradient(to right, lime ${(player.main.cooldowns.monsterAttackCooldown/1)*100}%, grey 1px); width: 100px; height:2px'></div>`}]]],
                 ['blank',['0px','100px']],
                 ["display-text", function() {
                     let table = "<span style='display:inline;'>Вы победили босса этажа. Выберите одну из трёх полученных карт. <br></span><br><div style='width:90%; background:rgba(21, 21, 21, 1); height:500px; align-items:center; justify-content:center; display:flex; border:4px solid white; opacity:1'><br>"

@@ -34,6 +34,8 @@
 	<script src="js/utils/options.js"></script>
 	<script src="js/utils/save.js"></script>
 	<script src="js/utils/themes.js"></script>
+	  <script>
+  </script>
 <script type="text/javascript" src="https://andywer.github.io/jquery-dim-background/jquery.dim-background.min.js"></script>
 
 
@@ -73,7 +75,7 @@
 			<br><br>
 		</div>
 
-		<div id="treeOverlay" style='background-image: url("resources/hell_tower2.jpg"); background-repeat: no-repeat; background-size: cover; background-clip: content-box;'v-if="!(tmp.gameEnded && !player.keepGoing) && (player.tab === 'none' || tmp.other.splitScreen || !readData(layoutInfo.showTree))" class="treeOverlay" onscroll="resizeCanvas()"
+		<div id="treeOverlay"  style=' background-repeat: no-repeat; background-size: cover; background-clip: content-box;'v-if="!(tmp.gameEnded && !player.keepGoing) && (player.tab === 'none' || tmp.other.splitScreen || !readData(layoutInfo.showTree))" class="treeOverlay" onscroll="resizeCanvas()"
 			v-bind:class="{ 
 			fullWidth: (player.tab == 'none' || player.navTab == 'none'), 
 			col: (player.tab !== 'none' && player.navTab !== 'none'), 

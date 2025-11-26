@@ -2,7 +2,102 @@ var particles = {};
 var particleID = 0;
 var mouseX = 0;
 var mouseY = 0;
-
+const damagePlayer = {
+            time: 1.5,
+            image: '',
+            x: 925,
+            y:350,
+            width: 35,
+            height: 35,
+            text() {return `<h3 style='
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text; background-image: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(251, 8, 13, 1) 100%);'>-${format(getTotalAttack(),2)}</h3>`},
+            angle: 0,
+            spread: 50,
+            offset: 10,
+            dir() {return Math.random() * (90 - 10) + 10},
+            speed: 2,
+            xVel: 12,
+            yVel: 3,
+            rotation: 0,
+            gravity: 0,
+            fadeOutTime: 1,
+            fadeInTimer: 0,
+            fadeInTime: 0,
+    }
+const damagePlayerCrit = {
+            time: 1.5,
+            image: '',
+            x: 925,
+            y:350,
+            width: 35,
+            height: 35,
+            text() {return `<h3 style='
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text; background-image: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(251, 231, 8, 1) 100%);'>-${format(getTotalAttack()*getCritStats().crit,2)}</h3>`},
+            angle: 0,
+            spread: 50,
+            offset: 10,
+            dir() {return Math.random() * (90 - 10) + 10},
+            speed: 2,
+            xVel: 12,
+            yVel: 3,
+            rotation: 0,
+            gravity: 0,
+            fadeOutTime: 1,
+            fadeInTimer: 0,
+            fadeInTime: 0,
+    }
+const damageEnemy = {
+            time: 1.5,
+            image: '',
+            x:125,
+            y:350,
+            width: 35,
+            height: 35,
+            text() {return `<h3 style='
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text; background-image: linear-gradient(90deg, rgba(255, 0, 0, 1) 0%, rgba(255, 255, 255, 1) 100%);'>-${format(getTotalMonsterAttack(),2)}</h3>`},
+            angle: 0,
+            spread: 50,
+            offset: 10,
+            dir() {return Math.random() * (90 - 10) + 10},
+            speed: 2,
+            xVel: 12,
+            yVel: 3,
+            rotation: 0,
+            gravity: 0,
+            fadeOutTime: 1,
+            fadeInTimer: 0,
+            fadeInTime: 0,
+    }
+const deadPlayer = {
+            time: 1.5,
+            image: '',
+            x:125,
+            y:300,
+            width: 35,
+            height: 35,
+            text() {return `<h2 style='
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text; background-image: linear-gradient(90deg, rgba(255, 0, 0, 1) 0%, rgba(92, 0, 0, 1) 100%);'>DEAD</h2>`},
+            angle: 0,
+            spread: 50,
+            offset: 10,
+            dir() {return Math.random() * (90 - 10) + 10},
+            speed: 2,
+            xVel: 12,
+            yVel: 3,
+            rotation: 0,
+            gravity: 0,
+            fadeOutTime: 1,
+            fadeInTimer: 0,
+            fadeInTime: 0,
+    }
 function makeParticles(data, amount=1, type = "normal") {
     for (let x = 0; x < amount; x++) {
         let particle = newParticles[type]()
