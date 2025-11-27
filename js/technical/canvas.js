@@ -38,6 +38,7 @@ function drawTree() {
 					drawTreeBranch(layer, tmp[layer].branches[branch])
 				}
 		}	
+		
 		drawComponentBranches(layer, tmp[layer].upgrades, "upgrade-")
 		drawComponentBranches(layer, tmp[layer].buyables, "buyable-")
 		drawComponentBranches(layer, tmp[layer].clickables, "clickable-")
@@ -83,6 +84,7 @@ function drawTreeBranch(num1, data, prefix) { // taken from Antimatter Dimension
     let y1 = start.top + (start.height / 2) + document.body.scrollTop;
     let x2 = end.left + (end.width / 2) + document.body.scrollLeft;
     let y2 = end.top + (end.height / 2) + document.body.scrollTop;
+	
     ctx.lineWidth = width;
     ctx.beginPath();
     ctx.strokeStyle = color_id

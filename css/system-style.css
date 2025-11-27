@@ -62,7 +62,13 @@ td {
 .can.buyable:hover {
 	z-index: 2
 }
-
+.hpbar::after {
+	clip-path: polygon(nonzero,10% 0%, 100% 0%, 90% 100%, 0% 100%); 
+	background-color: white;
+	background-size: cover;
+	width: 160px; 
+	height:30px;
+}
 .back {
 	position: absolute;
 	top: 0;

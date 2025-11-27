@@ -12,7 +12,7 @@ const damagePlayer = {
             text() {return `<h3 style='
   color: transparent;
   -webkit-background-clip: text;
-  background-clip: text; background-image: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(251, 8, 13, 1) 100%);'>-${format(getTotalAttack(),2)}</h3>`},
+  background-clip: text; background-image: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(251, 8, 13, 1) 100%);'>-${format((player.main.character.skill.skill_name=='Двойной разрез')?getTotalAttack()/2:(getTotalAttack()),2)}</h3>`},
             angle: 0,
             spread: 50,
             offset: 10,
@@ -36,7 +36,7 @@ const damagePlayerCrit = {
             text() {return `<h3 style='
   color: transparent;
   -webkit-background-clip: text;
-  background-clip: text; background-image: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(251, 231, 8, 1) 100%);'>-${format(getTotalAttack()*getCritStats().crit,2)}</h3>`},
+  background-clip: text; background-image: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(251, 231, 8, 1) 100%);'>-${format((player.main.character.skill.skill_name=='Двойной разрез')?((getTotalAttack()/2)*getCritStats().crit):(getTotalAttack()*getCritStats().crit),2)}</h3>`},
             angle: 0,
             spread: 50,
             offset: 10,
@@ -71,6 +71,27 @@ const damageEnemy = {
             rotation: 0,
             gravity: 0,
             fadeOutTime: 1,
+            fadeInTimer: 0,
+            fadeInTime: 0,
+    }
+const attackPlayer = {
+            time: 1,
+            image: '',
+            x:925,
+            y:350,
+            width: 50,
+            height: 50,
+            image: 'resources/blood.png',
+            angle: 0,
+            spread: 0,
+            offset: 20,
+            dir() {return Math.random() * (90 - 10) + 10},
+            speed: 0    ,
+            xVel: 0,
+            yVel: 0,
+            rotation: 0,
+            gravity: 0,
+            fadeOutTime: 0.5,
             fadeInTimer: 0,
             fadeInTime: 0,
     }

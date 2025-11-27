@@ -1,10 +1,17 @@
-
+function leaveBoss() {
+  player.main.floor.currentMonster=1
+  getMob()
+  player.main.floor.monster.healthPoints=getMaxEnemyHP()
+  player.main.character.healthPoints=getMaxPlayerHP()
+  player.main.cooldowns.attackCooldown=0
+  player.main.cooldowns.monsterAttackCooldown=0
+}
 /*-------------------------
   | Функции характеристик |
   -------------------------*/
   function getCritStats() {
-    let chance = getSlotBuffs().crit_chance+player.main.character.crit_chance
-    let crit = getSlotBuffs().crit+player.main.character.crit+200
+    let chance = getSlotBuffs().crit_chance+player.main.character.crit_chance.toNumber()
+    let crit = getSlotBuffs().crit+player.main.character.crit.toNumber()+200
     return {crit_chance:chance/100, crit:crit/100}
   }
 function updatePlayerStats() {
@@ -19,7 +26,7 @@ function updatePlayerStats() {
   let water_attack = className=='mage'?new Decimal(1):new Decimal(0)
   let poison_attack = className=='mage'?new Decimal(1):new Decimal(0)
   let luck = className=='archer'?new Decimal(2):new Decimal(1)
-  let crit = new Decimal(0)
+  let crit = new Decimal(100)
   let crit_chance = className=='archer'?new Decimal(5):new Decimal(0)
   let level = new Decimal(1)
   let data = player.main.cards
@@ -35,18 +42,20 @@ function updatePlayerStats() {
         common_psn_amp: 0,
         common_wtr_amp: 0,
         */
-  vitality = vitality.add(data.common_vit).add(className=='warrior'?buyableEffect('main',18):0)
-  strength = strength.add(data.common_str).add(className=='warrior'?buyableEffect('main',18):0)
-  agility = agility.add(data.common_agi).add(className=='archer'?buyableEffect('main',15):0)
-  intelligence = intelligence.add(data.common_int).add(className=='intelligence'?buyableEffect('main',19):0)
-  luck = luck.add(data.common_luc)
-  crit_chance = crit_chance.add(className=='archer'?buyableEffect('main',16):0)
+  vitality = vitality.add(data.common_vit).add(data.uncommon_vit*3).add(className=='warrior'?buyableEffect('main',18):0)
+  strength = strength.add(data.common_str).add(data.uncommon_str*3).add(className=='warrior'?buyableEffect('main',17):0)
+  agility = agility.add(data.common_agi).add(data.uncommon_agi*3).add(className=='archer'?buyableEffect('main',15):0).add(className=='archer'?buyableEffect('main',26):0)
+  intelligence = intelligence.add(data.common_int).add(data.uncommon_int*3).add(className=='intelligence'?buyableEffect('main',19):0)
+  luck = luck.add(data.common_luc).add(data.uncommon_luc*3).add(className=='archer'?buyableEffect('main',24):0)
+  crit_chance = crit_chance.add(className=='archer'?buyableEffect('main',16):0).add(className=='archer'?buyableEffect('main',25).eff:0).add(data.uncommon_crit_chance*2)
+  crit = crit.add(className=='archer'?buyableEffect('main',25).eff2:0)
   if (vitality!=player.main.character.vitality)player.main.character.vitality = vitality
   if (strength!=player.main.character.strength)player.main.character.strength = strength
   if (agility!=player.main.character.agility)player.main.character.agility = agility
   if (intelligence!=player.main.character.intelligence)player.main.character.intelligence = intelligence
   if (luck!=player.main.character.luck)player.main.character.luck = luck
   if (crit_chance!=player.main.character.crit_chance)player.main.character.crit_chance = crit_chance
+  if (crit!=player.main.character.crit) player.main.character.crit = crit
 }
 function getMaxPlayerHP() {
   let level = player.main.character.level;
@@ -66,7 +75,7 @@ function getMaxEnemyHP() {
   let level = new Decimal(player.main.floor.currentMonster);
   return new Decimal(10)
     .mul(new Decimal(1.15).pow(level.pow(0.95)))
-    .mul(new Decimal(stage.gte(10)?1.75:1.346).pow(stage)).pow(player.main.floor.currentMonster>=player.main.floor.monsters?1.25:1);
+    .mul(new Decimal(stage.gte(10)?1.75-(stage/500):1.346).pow(stage)).pow(player.main.floor.currentMonster>=player.main.floor.monsters?1.2:1);
 }
 function updateEnemyCurrentHP(value) {
   player.main.floor.monster.healthPoints =
@@ -125,12 +134,14 @@ function getLevelMultipliers(className = "") {
       let weakMultiplier = baseMulti[s].sub(
         new Decimal(0.05).mul(new Decimal(i).pow(0.5 / baseMulti[s]))
       );
-      if (baseMulti[s].gte(2))
+      if (baseMulti[s].gte(2)) {
+        if (multiplier.lte(1)) multiplier = multiplier.add(0.25)
         player.main.character[`multi_${stats[s]}`] =
-          player.main.character[`multi_${stats[s]}`].mul(multiplier);
-      else
+          player.main.character[`multi_${stats[s]}`].mul(multiplier);}
+      else{
+        if (weakMultiplier.lte(1)) weakMultiplier = weakMultiplier.add(0.3)
         player.main.character[`multi_${stats[s]}`] =
-          player.main.character[`multi_${stats[s]}`].mul(weakMultiplier);
+          player.main.character[`multi_${stats[s]}`].mul(weakMultiplier);}
     }
   }
 }
@@ -150,21 +161,21 @@ function getScaleBuffs(slot = false, type = "") {
   let scaled_stats = excludeStats();
   let scaleNames = {
     "-": 0,
-    FF: 0.001,
+    FF: 0.075,
     F: 0.1,
-    E: 0.275,
-    D: 0.45,
-    C: 0.75,
-    B: 1,
-    A: 1.365,
-    S: 1.75,
-    SS: 2,
-    SSS: 2.5,
-    R: 3,
-    SR: 3.75,
-    SSR: 4.5,
-    UR: 6,
-    X: 7.5,
+    E: 0.375,
+    D: 1.75,
+    C: 2.25,
+    B: 7.65,
+    A: 12.435,
+    S: 16.342,
+    SS: 22.017,
+    SSS: 28.064,
+    R: 38.001,
+    SR: 49.932,
+    SSR: 61.078,
+    UR: 74.12,
+    X: 107.13,
   };
   let data = player.main.equipment[type];
   let currentEffect = 0;
@@ -174,8 +185,29 @@ function getScaleBuffs(slot = false, type = "") {
       for (j in data) {
         if (j != "speed" && !scaled_stats.includes(j) && data[j] > 0) {
           let base = data[j];
+          if (j=='defense') {
+            scaleNames = {
+              "-": 0,
+              FF: 0.0075,
+              F: 0.02,
+              E: 0.085,
+              D: 0.25,
+              C: 0.5,
+              B: 1.15,
+              A: 1.435,
+              S: 2.342,
+              SS: 3.017,
+              SSS: 4.064,
+              R: 6.001,
+              SR: 7.932,
+              SSR: 9.078,
+              UR: 11.12,
+              X: 15.13,
+            };
+          }
         if (j=='attack') {
-          if (player.main.cards.common_atk_amp>=1) base *= 1.05**player.main.cards.common_atk_amp
+              base *= 1.05**player.main.cards.common_atk_amp
+              base *= 1.15**player.main.cards.uncommon_atk_amp
             switch (player.main.character.class) {
               case 'warrior':
                 base *= buyableEffect('main',12)
@@ -205,8 +237,8 @@ function getScaleBuffs(slot = false, type = "") {
           if (multi > 1)
             currentEffect +=
               Math.log(base * multi) *
-              Math.sqrt(Math.pow(base, 2) / multi) *
-              (multi / 10);
+              Math.sqrt(Math.pow(base, currentStat=='defense'?1.15:1.25)) *
+              (multi*scaleNames[data[subI]])/10;
         }
       }
     }
@@ -289,7 +321,7 @@ function getTotalAttack() {
 function getTotalMonsterAttack() {
   let mainAttack = player.main.floor.monster.attack
   if (player.main.floor.currentMonster==player.main.floor.monsters) mainAttack*=player.main.floor.boss.skill.damage
-  if (getSlotBuffs().defense>0) mainAttack /= (getSlotBuffs().defense+getSlotBuffs().scaled_defense)**0.45
+  if (getSlotBuffs().defense>0) mainAttack /= (getSlotBuffs().defense+getSlotBuffs().scaled_defense)**0.35
   return mainAttack;
 }
 function getSlotBuffs() {
@@ -317,7 +349,8 @@ function getSlotBuffs() {
       if (slot[i][j] != undefined) data[j] += slot[i][j];
     }
   }
-    if (player.main.cards.common_atk_amp>=1) data['attack'] *= 1.05**player.main.cards.common_atk_amp
+    data['attack'] *= 1.05**player.main.cards.common_atk_amp
+    data['attack'] *= 1.15**player.main.cards.uncommon_atk_amp
     switch (player.main.character.class) {
       case 'warrior':
         data['attack'] *= buyableEffect('main',12)
@@ -353,57 +386,111 @@ function getNextForgeMult(id) {
   let type = tmp.main.clickables[player.main.checkToggleSlotId].type;
   let level = data.forgeLevel.add(1);
   let scaleTypes = ["necklace", "ring_1", "ring_2", "bracelet"];
-  let eff = new Decimal(scaleTypes.includes(type) ? 0.015 : 0.15).mul(level);
+  let eff = new Decimal(scaleTypes.includes(type) ? 0.025 : 0.15).mul(level);
   eff = eff.mul(level.div(10).add(1)).mul(level.sqrt().div(10).add(1));
   return eff.add(1).pow(data.rarity).max(1);
 }
 function getSkills(id) {
-  let skills = [
-    {
-      skill_name: "Простой удар",
-      skill_image: "basic_attack",
-      damage: 1,
-      cooldown: 1,
-      rarity: 0,
-      level: 0,
-    },
-    {
-      skill_name: "Быстрый взмах",
-      skill_image: "rapid_strike",
-      damage: 0.63,
-      bloodlust: 3,
-      cooldown: 0.365,
-      rarity: 1,
-      level: 0,
-    },
-    {
-      skill_name: "Выпад щитом",
-      skill_image: "shield_attack",
-      damage: 2.06,
-      defense_buff: 1.1,
-      cooldown: 5.3,
-      rarity: 1,
-      level: 0,
-    },
-    {
-      skill_name: "Двойной разрез",
-      skill_image: "double_attack",
-      damage: 1.45,
-      cooldown: 2.73,
-      rarity: 1,
-      level: 0,
-    },
-    {
-      skill_name: "Огненный удар",
-      skill_image: "fire_sword",
-      damage: 0,
-      fire: 3,
-      fire_tickdamage: 5.12,
-      cooldown: 6.06,
-      rarity: 2,
-      level: 0,
-    },
-  ];
+  let className = player.main.character.class
+  let skills = []
+  switch (className) {
+    case 'warrior':
+      skills = [
+          {
+            skill_name: "Простой удар",
+            skill_image: "basic_attack",
+            damage: 1,
+            cooldown: 1,
+            rarity: 0,
+            level: 0,
+          },
+          {
+            skill_name: "Быстрый взмах",
+            skill_image: "rapid_strike",
+            damage: 0.43,
+            bloodlust: 3,
+            cooldown: 0.37,
+            rarity: 1,
+            level: 0,
+          },
+          {
+            skill_name: "Выпад щитом",
+            skill_image: "shield_attack",
+            damage: 2.06,
+            defense_buff: 1.1,
+            cooldown: 2.3,
+            rarity: 1,
+            level: 0,
+          },
+          {
+            skill_name: "Двойной разрез",
+            skill_image: "double_attack",
+            damage: 1.85,
+            cooldown: 0.97,
+            rarity: 1,
+            level: 0,
+          },
+          {
+            skill_name: "Огненный удар",
+            skill_image: "fire_sword",
+            damage: 0,
+            fire: 3,
+            fire_tickdamage: 5.12,
+            cooldown: 2.56,
+            rarity: 2,
+            level: 0,
+          },
+        ];
+        break
+    case 'archer':
+      skills = [
+          {
+            skill_name: "Простой выстрел",
+            skill_image: "basic_attack",
+            damage: 1,
+            cooldown: 1,
+            rarity: 0,
+            level: 0,
+          },
+          {
+            skill_name: "Скорострел",
+            skill_image: "rapid_strike",
+            damage: 0.43,
+            cooldown: 0.265,
+            rarity: 1,
+            level: 0,
+          },
+          {
+            skill_name: "Меткий выстрел",
+            skill_image: "accurate_shoot",
+            damage: 2.50,
+            defense_buff: 1.1,
+            cooldown: 2,
+            rarity: 1,
+            level: 0,
+          },
+          {
+            skill_name: "Заряженный выстрел",
+            skill_image: "charged_shoot",
+            damage: 8.5,
+            cooldown: 3.5,
+            rarity: 1,
+            level: 0,
+          },
+          {
+            skill_name: "Отравленная стрела",
+            skill_image: "poison_shoot",
+            damage: 0,
+            poison:2,
+            poison_damage:3,
+            cooldown: 2.56,
+            rarity: 2,
+            level: 0,
+          },
+        ];
+        break
+
+  }
   return skills[id];
 }
 /*------------------------
@@ -414,67 +501,67 @@ function getMob() {
   let current = player.main.floor.currentMonster
   let mobs = []
   let skill = {}
-  if (stage<=99) {
+  if (stage<=100) {
     let random = Math.floor(Math.random()*(5-0)+0)
     mobs = ["Высшее созвездие","Высшее созвездие","Высшее созвездие","Высшее созвездие","Созвездие Башни"]
     mobs = mobs[random]
-    skill = {damage:mobs[random]=="Созвездие Башни"?5000:3000,cooldown:mobs[random]=="Созвездие Башни"?15:7}
+    skill = {damage:mobs[random]=="Созвездие Башни"?4500:6500,cooldown:mobs[random]=="Созвездие Башни"?15:7}
   }
   if (stage<=90) {
     let random = Math.floor(Math.random()*(5-0)+0)
     mobs = ["Низший управляющий башней","Низший управляющий башней","Низший управляющий башней","Низший управляющий башней","Космический капитан"]
     mobs = mobs[random]
-    skill = {damage:mobs[random]=="Космический капитан"?2650:900,cooldown:mobs[random]=="Космический капитан"?7.5:5}
+    skill = {damage:mobs[random]=="Космический капитан"?1750:700,cooldown:mobs[random]=="Космический капитан"?7.5:5}
   }
   if (stage<=80) {
     let random = Math.floor(Math.random()*(5-0)+0)
     mobs = ["Страж Башни Созвездий","Страж Башни Созвездий","Страж Башни Созвездий","Страж Башни Созвездий","Страж Пустоты"]
     mobs = mobs[random]
-    skill = {damage:mobs[random]=="Страж Пустоты"?850:440,cooldown:mobs[random]=="Страж Пустоты"?10:2}
+    skill = {damage:mobs[random]=="Страж Пустоты"?1250:300,cooldown:mobs[random]=="Страж Пустоты"?10:2}
   }
   if (stage<=70) {
     let random = Math.floor(Math.random()*(5-0)+0)
     mobs = ["Оживший низший бог","Оживший низший бог","Оживший низший бог","Оживший низший бог","Древний высший бог"]
     mobs = mobs[random]
-    skill = {damage:mobs[random]=="Древний высший бог"?365:220,cooldown:mobs[random]=="Древний высший бог"?7:4}
+    skill = {damage:mobs[random]=="Древний высший бог"?425:325,cooldown:mobs[random]=="Древний высший бог"?7:4}
   }
-  if (stage<=50) {
+  if (stage<=60) {
     let random = Math.floor(Math.random()*(5-0)+0)
     mobs = ["Древняя статуя","Древняя статуя","Древняя статуя","Древняя статуя","Живая статуя бога"]
     mobs = mobs[random]
-    skill = {damage:mobs[random]=="Живая статуя бога"?125:80,cooldown:mobs[random]=="Живая статуя бога"?5:2.5}
+    skill = {damage:mobs[random]=="Живая статуя бога"?125:70,cooldown:mobs[random]=="Живая статуя бога"?5:2.5}
   }
-  if (stage<=40) {
+  if (stage<=50) {
     let random = Math.floor(Math.random()*(5-0)+0)
     mobs = ["Адский Демон","Адский Демон","Адский Демон","Адский Демон","Высший дьявол"]
     mobs = mobs[random]
-    skill = {damage:mobs[random]=="Высший дьявол"?35:20,cooldown:mobs[random]=="Высший дьявол"?3:1.5}
+    skill = {damage:mobs[random]=="Высший дьявол"?20:15,cooldown:mobs[random]=="Высший дьявол"?3:1.5}
   }
-  if (stage<=30) {
+  if (stage<=40) {
     let random = Math.floor(Math.random()*(5-0)+0)
     mobs = ["Огненный Слизень","Огненный Слизень","Огненный Слизень","Огненный Слизень","Огненный Элементаль"]
     mobs = mobs[random]
     skill = {damage:mobs[random]=="Огненный Элементаль"?10:5,cooldown:mobs[random]=="Огненный Элементаль"?1.5:0.7}
   }
-  if (stage<=20) {
+  if (stage<=30) {
     let random = Math.floor(Math.random()*(5-0)+0)
     mobs = ["Гоблин","Гоблин","Гоблин","Гоблин","Ork"]
     mobs = mobs[random]
     skill = {damage:mobs[random]=="Ork"?2:1,cooldown:mobs[random]=="Ork"?2:1}
   }
-  if (stage<=10) {
+  if (stage<=20) {
     let random = Math.floor(Math.random()*(5-0)+0)
     mobs = ["Слизень","Слизень","Слизень","Слизень","Гоблин"]
     mobs = mobs[random]
     console.log(random)
     skill = {damage:mobs[random]=="Гоблин"?1.25:1,cooldown:mobs[random]=="Гоблин"?1:0.75}
   }
-  if (stage<=3) {
+  if (stage<=10) {
     mobs = "Слизень"
     skill = {damage:1,cooldown:0.75}
   }
   player.main.floor.monster.name=mobs
-  player.main.floor.monster.attack = 5*(stage**1.25)*(stage>10?(((stage-10)+1)**1.15):1)*((current*0.1)+1)
+  player.main.floor.monster.attack = 2*(stage**1.25)*(stage>10?(((stage-10)+1)**1.15):1)*((current*0.1)+1)
   if (player.main.floor.currentMonster==player.main.floor.monsters) {
     player.main.floor.monster.name="[Босс] "+mobs
     player.main.floor.boss.skill = skill}
@@ -501,6 +588,7 @@ function getItemDropChances() {
   let chances = [0, 0, 0, 0, 0, 0, 0, 0];
   if (stage <= 100) {
     chances = [0, 0, 0, 0, 0, 0, 0, 1e-9 * stage];
+    minDrop = 7
   }
   if (stage <= 90) {
     chances = [
@@ -508,24 +596,28 @@ function getItemDropChances() {
       0,
       0,
       0,
-      0.0035 * stage,
-      0.001 * stage,
+      0,
+      0,
       (1 / 10000000) * stage,
       0,
     ];
+    minDrop=6
   }
   if (stage <= 80) {
-    chances = [0, 0, 0, 0, 0.0025 * stage, 0.00001 * stage, 0, 0];
+    chances = [0, 0, 0, 0, 0, 0.00001 * stage, 0, 0];
+    minDrop=5
   }
   if (stage <= 65) {
-    chances = [0, 0, 0.012 * stage, 0.01 * stage, 0.001 * stage, 0, 0, 0];
+    chances = [0, 0, 0, 0, 0.001 * stage, 0, 0, 0];
+    minDrop=3
   }
   if (stage <= 40) {
-    chances = [0, 0, 0.2 * stage, 0.01 * stage, 0, 0, 0, 0];
+    chances = [0, 0, 0, 0.01 * stage, 0, 0, 0, 0];
+    minDrop=2
   }
   if (stage <= 30) {
     chances = [
-      15 - stage / 3,
+      0,
       30 * (stage ** 0.15 / 5),
       0.12 * stage,
       0,
@@ -534,12 +626,15 @@ function getItemDropChances() {
       0,
       0,
     ];
+    minDrop=1
   }
   if (stage <= 20) {
     chances = [2 + stage * 2, 1 + stage * 1.35, 0, 0, 0, 0, 0];
+    minDrop=0
   }
   if (stage <= 10) {
     chances = [9 * stage + luck, 0, 0, 0, 0, 0, 0];
+    minDrop=0
   }
   for (i = 0; i < chances.length; i++) {
     if (chances[i] >= 0)
@@ -547,11 +642,11 @@ function getItemDropChances() {
         .add(1)
         .div(10)
         .add(1)
-        .pow(0.35 * (stage > 80 && i > 5 ? 2.5 : 1)).min(1)
+        .pow(0.35 * (stage > 80 && i > 5 ? 2.5 : 1))
         .toNumber();
-    chances[i] = chances[i] / 100;
+    chances[i] = Math.min(1,chances[i] / 100);
   }
-  return chances;
+  return {chances:chances, minDrop:minDrop};
 }
 /*------------------------
   | Функции для престижа |
@@ -559,7 +654,7 @@ function getItemDropChances() {
   function getPrestigeCurrencyGain() {
     let totalGold = player.main.totalGold
     let level = player.main.character.level
-    let gain = new Decimal(2).mul(totalGold.root(10).max(1).pow(0.75)).mul(level.max(1).root(2).pow(1.5).add(1)).mul(level.gte(10)?level.max(1).root(1.5).pow(1.15).add(1):1)
+    let gain = new Decimal(2).mul(totalGold.root(10).max(1).pow(0.75)).mul(level.max(1).root(1.5).pow(1.5).add(1)).mul(level.gte(10)?level.max(1).root(1.5).pow(0.95).add(1):1)
     return gain
   }
 /*--------------
@@ -790,6 +885,7 @@ function getStatName(stat, value) {
 }
 //Функция для вывода основных характеристик персонажа
 function getPlayerStats(stat, value, bonus) {
+  let attack = 1.05**player.main.cards.common_atk_amp*(1.15**player.main.cards.uncommon_atk_amp)
   switch (stat) {
     case "add_strength":
       return `<div class='statDiv'>Сила</div><div class='statDiv'>${format(player.main.character.strength, 0)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_strength, 2)} | -</div>`;
@@ -804,7 +900,7 @@ function getPlayerStats(stat, value, bonus) {
       return `<div class='statDiv'>Мудрость:</div><div class='statDiv'>${format(player.main.character.intelligence, 0)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_intelligence, 2)} | -</div>`;
       break;
     case "attack":
-      return `<div class='statDiv'>Атака:</div><div class='statDiv'></div><div class='statDiv'>${format(bonus, 2)} (${format(getSlotBuffs()["scaled_attack"], 2)})</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1.05**player.main.cards.common_atk_amp, 2)}</div>`;
+      return `<div class='statDiv'>Атака:</div><div class='statDiv'></div><div class='statDiv'>${format(bonus, 2)} (${format(getSlotBuffs()["scaled_attack"], 2)})</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(attack, 2)}</div>`;
       break;
     case "speed":
       return `<div class='statDiv'>Скорость атаки:</div><div class='statDiv'>${format(player.main.character.skill.cooldown ? player.main.character.skill.cooldown : 0, 2)}/сек</div><div class='statDiv'>
@@ -829,7 +925,7 @@ function getPlayerStats(stat, value, bonus) {
       return `<div class='statDiv'>Шанс крита : </div><div class='statDiv'>${format(value, 0)}%</div><div class='statDiv'>${format(bonus, 0)}%</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1, 2)}</div>`;
       break;
     case "crit":
-      return `<div class='statDiv'>Крит. урон: </div><div class='statDiv'>${format(value + 100, 0)}%</div><div class='statDiv'>${format(bonus, 0)}%</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1, 2)}</div>`;
+      return `<div class='statDiv'>Крит. урон: </div><div class='statDiv'>${format(player.main.character.crit, 0)}%</div><div class='statDiv'>${format(bonus, 0)}%</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1, 2)}</div>`;
       break;
   }
 }
@@ -947,6 +1043,7 @@ function toggleGrids() {
   }
 }
 function getCard(id, skillId = undefined) {
+  console.log(id,player.main.cards[id], player.main.cards['uncommon_crit_chance'])
   if (skillId != undefined) player.main.skill_grid[skillId].duplicates += 1;
   else if (id != undefined) player.main.cards[id] += 1;
   player.main.character.skill_choose = {};
@@ -1257,8 +1354,18 @@ function getUncommonWeapon(ifSingleId = false, itemId) {
       image_name: "wold_fang_ring",
       item_name: "Кольцо из клыка волка",
       level: 0,
-      add_strength: 4,
+      add_agility: 4,
       crit_chance: 1,
+      rarity: 2,
+    },
+    {
+      item_type: "ring",
+      item_subtype: "ring",
+      image_name: "wold_fang_ring",
+      item_name: "Кольцо из грубой руны",
+      level: 0,
+      add_strength: 4,
+      add_vitality: 4,
       rarity: 2,
     },
     {
@@ -1287,7 +1394,9 @@ function getUncommonWeapon(ifSingleId = false, itemId) {
       item_name: "Ожерелье из глаза гоблина",
       level: 0,
       crit_chance: 2,
-      attack: 3,
+      add_agility:2,
+      add_strength:2,
+      add_intelligence:3,
       rarity: 2,
     },
     {
@@ -1307,6 +1416,8 @@ function getUncommonWeapon(ifSingleId = false, itemId) {
       level: 0,
       crit: 5,
       add_strength: 2,
+      add_agility:2,
+      add_intelligence:2,
       rarity: 2,
     },
     {
@@ -1399,6 +1510,127 @@ function getUncommonWeapon(ifSingleId = false, itemId) {
   }
   if (ifSingleId) return chosenPool[0][itemId];
   else return chosenPool[0];
+}
+function getUncommonUC(skill = false) {
+  let className = player.main.character.class;
+  let chosenPool = [];
+  let fullPool = [
+    {
+      card_name: "Листок с острыми углами II",
+      description: "Сила персонажа ",
+      value: 3,
+      amplify: false,
+      card_id: "uncommon_str",
+      rarity: 2,
+    },
+    {
+      card_name: "Толстый лист II",
+      description: "Живучесть персонажа ",
+      value: 3,
+      amplify: false,
+      card_id: "uncommon_vit",
+      rarity: 2,
+    },
+    {
+      card_name: "Тонкий лист II",
+      description: "Ловкость персонажа",
+      value: 3,
+      amplify: false,
+      card_id: "uncommon_agi",
+      rarity: 2,
+    },
+    {
+      card_name: "Лист с древними рунами",
+      description: "Мудрость персонажа",
+      value: 3,
+      amplify: false,
+      card_id: "uncommon_int",
+      rarity: 2,
+    },
+    {
+      card_name: "Лист на большую удачу",
+      description: "Удача персонажа",
+      value: 3,
+      amplify: false,
+      card_id: "uncommon_luc",
+      rarity: 2,
+    },
+    {
+      card_name: "Печать усиления +1",
+      description: "Атака оружия ",
+      value: 15,
+      amplify: true,
+      card_id: "uncommon_atk_amp",
+      rarity: 2,
+    },
+    {
+      card_name: "Печать стойкости +1",
+      description: "Защита персонажа ",
+      value: 10,
+      amplify: true,
+      card_id: "uncommon_def_amp",
+      rarity: 2,
+    },
+    {
+      card_name: "Лист со сферой огня",
+      description: "Огненный урон персонажа ",
+      value: 10,
+      amplify: true,
+      card_id: "uncommon_fire_amp",
+      rarity: 2,
+    },
+    {
+      card_name: "Наконечник стрелы",
+      description: "Шанс крита. ",
+      value: 1,
+      amplify: true,
+      card_id: "uncommon_crit_chance",
+      rarity: 2,
+    },
+    {
+      card_name: "Смертельный лист",
+      description: "Урон отравлением персонажа ",
+      value: 10,
+      amplify: true,
+      card_id: "uncommon_psn_amp",
+      rarity: 2,
+    },
+    {
+      card_name: "Сфера воды",
+      description: "Водный урон персонажа ",
+      value: 10,
+      amplify: true,
+      card_id: "uncommon_wtr_amp",
+      rarity: 2,
+    },
+  ];
+  let skillPool = [
+    {
+      card_name: "Огненный взмах",
+      description: "Получить дупликат навыка",
+      skillId: 105,
+      rarity: 2,
+    },
+  ];
+  switch (className) {
+  case 'warrior': {
+    if (skill == false) chosenPool.push(fullPool);
+    else chosenPool.push(skillPool);
+  }
+  case 'archer': {
+    skillPool = [
+    {
+      card_name: "Отравленная стрела",
+      description: "Получить дупликат навыка",
+      skillId: 105,
+      rarity: 2,
+    },
+  ];
+    if (skill == false) chosenPool.push(fullPool);
+    else chosenPool.push(skillPool);
+    }
+  }
+  return chosenPool;
 }
 function getCommonUC(skill = false) {
   let className = player.main.character.class;
@@ -1505,13 +1737,40 @@ function getCommonUC(skill = false) {
       rarity: 1,
     },
   ];
-  if ((className = "warrior")) {
+  switch (className) {
+  case 'warrior': {
     if (skill == false) chosenPool.push(fullPool);
     else chosenPool.push(skillPool);
+  }
+  case 'archer': {
+    skillPool = [
+    {
+      card_name: "Скорострел",
+      description: "Получить дупликат навыка",
+      skillId: 102,
+      rarity: 1,
+    },
+    {
+      card_name: "Меткий выстрел",
+      description: "Получить дупликат навыка",
+      skillId: 103,
+      rarity: 1,
+    },
+    {
+      card_name: "Заряженный выстрел",
+      description: "Получить дупликат навыка",
+      skillId: 104,
+      rarity: 1,
+    },
+  ];
+    if (skill == false) chosenPool.push(fullPool);
+    else chosenPool.push(skillPool);
+    }
   }
   return chosenPool;
 }
 function getRandomCards() {
+  let pool = [function() {return;}, getCommonUC,getUncommonUC]
   let cards = getCommonUC(false)[0];
   let skillCards = getCommonUC(true)[0];
 
@@ -1519,6 +1778,12 @@ function getRandomCards() {
   let rand = 1000;
   for (i = 1; i <= 3; i++) {
     if (i < 3) {
+      let chance = Math.random()
+      console.log(chance)
+      if (chance < 0.25) {
+        cards = getUncommonUC(false)[0];
+        skillCards = getUncommonUC(true)[0]
+      }
       rand = Math.floor(Math.random() * (cards.length - 0) + 0);
       chosenCards.push(cards[rand]);
     } else {
@@ -1555,6 +1820,17 @@ addLayer("main", {
         common_fire_amp: 0,
         common_psn_amp: 0,
         common_wtr_amp: 0,
+        uncommon_vit: 0,
+        uncommon_str: 0,
+        uncommon_agi: 0,
+        uncommon_int: 0,
+        uncommon_atk_amp: 0,
+        uncommon_luc: 0,
+        uncommon_def_amp: 0,
+        uncommon_fire_amp: 0,
+        uncommon_psn_amp: 0,
+        uncommon_wtr_amp: 0,
+        uncommon_crit_chance: 0,
       },
       floor: {
         floorNumber: 1,
@@ -1579,6 +1855,7 @@ addLayer("main", {
           healthPoints: new Decimal(100),
           manaPoints: new Decimal(100),
           skill: {},
+          skillId:'',
           attack: 0,
           attack_speed: 0,
         },
@@ -1684,8 +1961,8 @@ addLayer("main", {
         water_attack: new Decimal(0),
         poison_attack: new Decimal(0),
         luck: new Decimal(0),
-        crit: 0,
-        crit_chance: 0,
+        crit: new Decimal(100),
+        crit_chance: new Decimal(0),
         level: new Decimal(1),
         exp: new Decimal(0),
         skill: {},
@@ -1718,8 +1995,8 @@ addLayer("main", {
   getNextLevelReq() {
     let currentLevel = player.main.character.level;
     let req = new Decimal(10)
-      .pow(currentLevel)
-      .pow(new Decimal(0.325).pow(currentLevel).add(1));
+      .pow(currentLevel.div(1.65).add(1))
+      .pow(new Decimal(0.0125).mul(currentLevel).add(1));
     return req;
   },
   //Слоты для персонажа (отдельный объект от основного инвентаря)
@@ -2790,10 +3067,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество воина I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Атака +50% за уровень.<br>Текущий бонус: +${(this.effect()-1)*100}% к атаке.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество воина I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Атака +100% за уровень.<br>Текущий бонус: +${(this.effect()-1)*100}% к атаке.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = new Decimal(0.5).mul(x)
+        let eff = x
         return eff.add(1)
       },
       tooltipStyle() {
@@ -2883,10 +3160,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество лучника I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Атака +50% за уровень.<br>Текущий бонус: +${(this.effect()-1)*100}% к атаке <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество лучника I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Атака +100% за уровень.<br>Текущий бонус: +${(this.effect()-1)*100}% к атаке <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = new Decimal(0.5).mul(x)
+        let eff = x
         return eff.add(1)
       },
       tooltipStyle() {
@@ -2976,10 +3253,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество мага I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Атака +50% за уровень.<br>Текущий бонус: +${(this.effect()-1)*100}% к атаке <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество мага I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Атака +100% за уровень.<br>Текущий бонус: +${(this.effect()-1)*100}% к атаке <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = new Decimal(0.5).mul(x)
+        let eff = x
         return eff.add(1)
       },
       tooltipStyle() {
@@ -3071,10 +3348,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Теневой бег I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Ловкость +1 за уровень.<br>Текущий бонус: +${format(this.effect())} Ловкости <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Теневой бег I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Ловкость +5 за уровень.<br>Текущий бонус: +${format(this.effect())} Ловкости <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x
+        let eff = x.mul(5)
         return eff
       },
       tooltipStyle() {
@@ -3259,10 +3536,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Закалка тела I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Сила +1 за уровень.<br>Текущий бонус: +${format(this.effect())} Силы <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Закалка тела I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Сила +5 за уровень.<br>Текущий бонус: +${format(this.effect())} Силы <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x
+        let eff = x.mul(5)
         return eff
       },
       tooltipStyle() {
@@ -3353,10 +3630,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Стальная кожа I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Живучесть +1 за уровень.<br>Текущий бонус: +${format(this.effect())} Живучести.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Стальная кожа I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Живучесть +5 за уровень.<br>Текущий бонус: +${format(this.effect())} Живучести.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x
+        let eff = x.mul(5)
         return eff
       },
       tooltipStyle() {
@@ -3447,10 +3724,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Фолиант мудрости I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Мудрость +1 за уровень.<br>Текущий бонус: +${format(this.effect())} Мудрости <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Фолиант мудрости I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>Мудрость +5 за уровень.<br>Текущий бонус: +${format(this.effect())} Мудрости <br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x
+        let eff = x.mul(5)
         return eff
       },
       tooltipStyle() {
@@ -3635,10 +3912,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество воина II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+100% к атаке персонажа.<br>Текущий бонус: +${format((this.effect()-1)*100)}% к атаке.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество воина II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+250% к атаке персонажа.<br>Текущий бонус: +${format((this.effect()-1)*100)}% к атаке.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x
+        let eff = x.mul(2,5)
         return eff.add(1)
       },
       tooltipStyle() {
@@ -3718,7 +3995,7 @@ addLayer("main", {
         return player.main.floor.floorNumber>10;
       },
       canAfford() {
-        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[15].gte(5)&& player.main.buyables[16].gte(5);
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[15].gte(5)&& player.main.buyables[16].gte(2);
       },
       buy() {
         player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
@@ -3729,10 +4006,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество лучника II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+100% к атаке персонажа.<br>Текущий бонус: +${format((this.effect()-1)*100)}% к атаке.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество лучника II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+250% к атаке персонажа.<br>Текущий бонус: +${format((this.effect()-1)*100)}% к атаке.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x
+        let eff = x.mul(2.5)
         return eff.add(1)
       },
       tooltipStyle() {
@@ -3823,10 +4100,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество мага II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+100% к атаке персонажа.<br>Текущий бонус: +${format((this.effect()-1)*100)}% к атаке.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Могущество мага II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+250% к атаке персонажа.<br>Текущий бонус: +${format((this.effect()-1)*100)}% к атаке.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x
+        let eff = x.mul(2.5)
         return eff.add(1)
       },
       tooltipStyle() {
@@ -3917,10 +4194,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Большая удача I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+2 Удачи за уровень.<br>Текущий бонус: +${format((this.effect()))} Удачи.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Большая удача I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+4 Удачи за уровень.<br>Текущий бонус: +${format((this.effect()))} Удачи.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x.mul(2)
+        let eff = x.mul(4)
         return eff
       },
       tooltipStyle() {
@@ -4000,7 +4277,7 @@ addLayer("main", {
         return player.main.floor.floorNumber>10;
       },
       canAfford() {
-        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[19].gte(5)&& player.main.buyables[20].gte(5);
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[22].gte(10);
       },
       buy() {
         player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
@@ -4012,11 +4289,11 @@ addLayer("main", {
       },
       tooltip() {
         return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Меткий выстрел II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]
-        </h4><hr><b style='font-size:10px'>+1% к шансу крита и +3% к крит. урону за уровень.<br>Текущий бонус: +${format((this.effect().eff))}% к шансу крита и +${format((this.effect().eff2))}% к крит. урону.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        </h4><hr><b style='font-size:10px'>+2.5% к шансу крита и +5% к крит. урону за уровень.<br>Текущий бонус: +${format((this.effect().eff))}% к шансу крита и +${format((this.effect().eff2))}% к крит. урону.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x
-        let eff2 = x.mul(3)
+        let eff = x.mul(2.5)
+        let eff2 = x.mul(5)
         return {eff:eff, eff2:eff2}
       },
       tooltipStyle() {
@@ -4096,7 +4373,7 @@ addLayer("main", {
         return player.main.floor.floorNumber>10;
       },
       canAfford() {
-        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[19].gte(5)&& player.main.buyables[20].gte(5);
+        return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[22].gte(10);
       },
       buy() {
         player[this.layer].fame_coins = player[this.layer].fame_coins.sub(this.cost());
@@ -4107,11 +4384,11 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Теневой бег 2 [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]
-        </h4><hr><b style='font-size:10px'>+2 ловкости за уровень.<br>Текущий бонус: +${format((this.effect()))} Ловкости.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Теневой бег II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]
+        </h4><hr><b style='font-size:10px'>+15 ловкости за уровень.<br>Текущий бонус: +${format((this.effect()))} Ловкости.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x*2
+        let eff = x*15
         return eff
       },
       tooltipStyle() {
@@ -4202,10 +4479,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Большая удача I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+2 Удачи за уровень.<br>Текущий бонус: +${format((this.effect()))} Удачи.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Большая удача I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+4 Удачи за уровень.<br>Текущий бонус: +${format((this.effect()))} Удачи.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x.mul(2)
+        let eff = x.mul(4)
         return eff
       },
       tooltipStyle() {
@@ -4296,10 +4573,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Закалка тела II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+2 Силы за уровень.<br>Текущий бонус: +${format((this.effect()))} Силы.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Закалка тела II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+15 Силы за уровень.<br>Текущий бонус: +${format((this.effect()))} Силы.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x.mul(2)
+        let eff = x.mul(15)
         return eff
       },
       tooltipStyle() {
@@ -4390,10 +4667,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Стальная кожа II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+2 Живучести за уровень.<br>Текущий бонус: +${format((this.effect()))} Живучести.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Стальная кожа II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+15 Живучести за уровень.<br>Текущий бонус: +${format((this.effect()))} Живучести.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x.mul(2)
+        let eff = x.mul(15)
         return eff
       },
       tooltipStyle() {
@@ -4484,10 +4761,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Большая удача I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+2 Удачи за уровень.<br>Текущий бонус: +${format((this.effect()))} Удачи.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Большая удача I [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+4 Удачи за уровень.<br>Текущий бонус: +${format((this.effect()))} Удачи.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x.mul(2)
+        let eff = x.mul(4)
         return eff
       },
       tooltipStyle() {
@@ -4578,10 +4855,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Мастер стихий II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+2 ко всему стихийному урону.<br>Текущий бонус: +${format((this.effect()))} ко всему стихийному урону.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Мастер стихий II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+3 ко всему стихийному урону.<br>Текущий бонус: +${format((this.effect()))} ко всему стихийному урону.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x.mul(2)
+        let eff = x.mul(3)
         return eff
       },
       tooltipStyle() {
@@ -4672,10 +4949,10 @@ addLayer("main", {
         );
       },
       tooltip() {
-        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Фолиант мудрости II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+2 к Мудрости.<br>Текущий бонус: +${format((this.effect()))} Мудрости.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
+        return `<h4 style='${this.canAfford()&&player[this.layer].buyables[this.id].lt(this.purchaseLimit)?'color:lime':'color:white'}'>Фолиант мудрости II [${format(player[this.layer].buyables[this.id],0)}/${format(this.purchaseLimit,0)}]</h4><hr><b style='font-size:10px'>+5 к Мудрости.<br>Текущий бонус: +${format((this.effect()))} Мудрости.<br>Стоимость: ${format(this.cost())} Монет Cлавы</b>`
       },
       effect(x=player[this.layer].buyables[this.id]) {
-        let eff = x.mul(2)
+        let eff = x.mul(5)
         return eff
       },
       tooltipStyle() {
@@ -4748,6 +5025,7 @@ addLayer("main", {
       let startDesc = getSkills((id % 10) - 1 + (Math.floor(id / 100) - 1) * 7);
       if (getSkillGridData("main", id).level > 0) {
         startDesc.damage *= 1.15 ** getSkillGridData("main", id).level;
+        if (startDesc.fire_tickdamage) startDesc.fire_tickdamage *= 1.15 ** getSkillGridData("main", id).level;
       }
       return startDesc;
     },
@@ -4775,11 +5053,12 @@ addLayer("main", {
     onHold(data, id) {
       if (data.level >= 0 || id == 101)
         setTimeout((player.main.character.skill = this.getSkillData(id)), 3000);
+        player.main.character.skillId=id
     },
     getDisplay(data, id) {
       if (data.level == 0 && id != 101)
         return `<span style="font-size:28px; color:grey">🔒</span>`;
-      return this.getSkillData(id).skill_name;
+      return `<span style='font-size:11px'>${this.getSkillData(id).skill_name}</span>`;
     },
     getProgressStyle(data, id) {
       return {
@@ -4856,14 +5135,14 @@ addLayer("main", {
   },
   //Инвентарь
   grid: {
-    rows: 6,
-    cols: 6,
+    rows: 7,
+    cols: 7,
     getStartData(id) {
       return { item_type: "none", item_name: "Debug", level: 0, rarity: 0 };
     },
     getUnlocked(id) {
-      // Default
-      return true;
+      console.log
+      if (Math.floor(id%100)!=7 && Math.floor(id/100)!=7|| (id==607)) return true
     },
     getCanClick(data, id) {
       return true;
@@ -4905,7 +5184,7 @@ addLayer("main", {
       toggleGrids();
     },
     getDisplay(data, id) {
-      return data.item_name;
+      return id==607?"<h5>Корзина</h5>":`<span style='font-size:11px'>${data.item_name}</span>`;
     },
     //Функция для текста в всплывалющем тултипе
     getTooltip(data, id) {
@@ -4916,7 +5195,7 @@ addLayer("main", {
       let k = 0;
       let j = 0;
       if (data.rarity > 0) statsTable = "";
-      if (data.rarity > 0)
+      if (data.rarity > 0&& id!=607)
         table = `${getEquipTypeName(data.item_subtype)}<h4>[Ур. ${data.level}] ${data.item_name} 
             ${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale == undefined ? "-" : data.strength_scale} | Живучесть: ${data.vitality_scale == undefined ? "-" : data.vitality_scale} 
@@ -4935,6 +5214,19 @@ addLayer("main", {
       return table + statsTable;
     },
     getStyle(data, id) {
+            if (id==601)
+        return {
+          width: "75px",
+          height: "75px",
+          border: "4px solid rgba(182, 150, 96, 1)",
+          "border-radius": "0",
+          "background-repeat": "no-repeat",
+          "background-position": "50% 50%",
+          color: "white",
+          "font-size": "16px",
+          "background-image": `${data.rarity > 0 ? `url('resources/rarity_${data.rarity}.png')` : `url('resources/rarity_${data.rarity}.png')`}`,
+          'margin-left':"75px",
+        };
       if (
         player.main.checkToggleGridId == id ||
         (player.main.checkToggleGridId_2 == id && data.rarity > 0)
@@ -4954,7 +5246,7 @@ addLayer("main", {
         return {
           width: "75px",
           height: "75px",
-          border: "4px solid rgba(182, 150, 96, 1)",
+          border: id==607?"4px solid grey":"4px solid rgba(182, 150, 96, 1)",
           "border-radius": "0",
           "background-repeat": "no-repeat",
           "background-position": "50% 50%",
@@ -4964,13 +5256,16 @@ addLayer("main", {
         };
     },
     getTooltipStyle(data, id) {
-      return {
+      if (data.rarity>0) return {
         border: "4px solid transparent",
         "border-image": "url(resources/border.png)",
         background: "#0f0f0f",
         width: "225px",
         "font-size": "12px",
         "border-image-slice": "10%",
+      };
+      else return {
+        'background':'rgba(0,0,0,0)',
       };
     },
   },
@@ -5181,30 +5476,33 @@ addLayer("main", {
     	var number = "resources/hills.jpg";
       switch (Math.floor(player.main.floor.floorNumber/10)) {
         case 0:
-          number = "resources/tower-first.jpg"
+          number = "resources/hills.jpg"
           break
         case 1:
-          number ='resources/tower-second.jpg'
+          number = "resources/tower-first.jpg"
           break
         case 2:
-          number = 'resources/hell-tower2.jpg'
+          number ='resources/tower-second.jpg'
           break
         case 3:
-          number = 'resources/hell-tower.jpg'
+          number = 'resources/hell-tower2.jpg'
           break
         case 4:
-          number = 'resources/tower-third.jpg'
+          number = 'resources/hell-tower.jpg'
           break
         case 5:
-          number = 'resources/tower-fourth.jpg'
+          number = 'resources/tower-third.jpg'
           break
         case 6:
-          number = 'resources/royal-tower1.jpg'
+          number = 'resources/tower-fourth.jpg'
           break
         case 7:
-          number = 'resources/royal-tower2.jpg'
+          number = 'resources/royal-tower1.jpg'
           break
         case 8:
+          number = 'resources/royal-tower2.jpg'
+          break
+        case 9:
           number = 'resources/celestial-tower.jpg'
           break
         case 'default':
@@ -5212,6 +5510,9 @@ addLayer("main", {
           break
       }
     if (number!='none') document.getElementById("treeOverlay").style.backgroundImage = `url(${number})`;
+    if (player.main.grid[607].rarity>0) player.main.grid[607]= { item_type: "none", item_name: "Debug", level: 0, rarity: 0 };
+    if (player.main.character.skillId){ 
+      if (player.main.character.skill!=tmp.main.skill_grid.getSkillData(player.main.character.skillId)) player.main.character.skill=tmp.main.skill_grid.getSkillData(player.main.character.skillId)}
     if (player.inCardChoose|| player.inClassChoose) {
       getLevelMultipliers(player.main.character.class);
       updatePlayerStats()
@@ -5231,7 +5532,7 @@ addLayer("main", {
     )
      { player.main.character.healthPoints = new Decimal(getMaxPlayerHP())
      };
-    if (player.main.floor.monster.healthPoints.lte(0)||player.main.floor.monster.healthPoints.gt(getMaxEnemyHP()))
+    if (player.main.floor.monster.healthPoints.gt(getMaxEnemyHP()))
       player.main.floor.monster.healthPoints = new Decimal(getMaxEnemyHP());
     player.main.character.exp = player.main.character.exp.add(
       new Decimal(5).times(diff)
@@ -5239,7 +5540,7 @@ addLayer("main", {
     if (getPlayerAttackSpeed() > 0)
       player.main.cooldowns.attackCooldown += diff;
       player.main.cooldowns.monsterAttackCooldown += diff;
-    if (player.main.cooldowns.monsterAttackCooldown>=1) {
+    if (player.main.cooldowns.monsterAttackCooldown>=(player.main.floor.currentMonster==player.main.floor.monsters?player.main.floor.boss.skill.cooldown:1)) {
       makeParticles(damageEnemy, 1)
       updateCurrentHP(getTotalMonsterAttack());
       player.main.cooldowns.monsterAttackCooldown=0
@@ -5251,11 +5552,23 @@ addLayer("main", {
       if (!player.main.character.skill.fire_tickdamage) {
         let critCheck = Math.random()
         let attack = getTotalAttack()
+        makeParticles(attackPlayer,1)
         if (critCheck<getCritStats().crit_chance) {
           makeParticles(damagePlayerCrit, 1)
            attack*=getCritStats().crit}
         else makeParticles(damagePlayer, 1)
-        updateEnemyCurrentHP(attack);
+        if (player.main.character.skill.skill_name=='Двойной разрез') {
+          updateEnemyCurrentHP(attack/2)
+          setTimeout(function() {
+           critCheck = Math.random()
+        if (critCheck<getCritStats().crit_chance) {
+          attack = getTotalAttack()
+          makeParticles(damagePlayerCrit, 1)
+           attack*=getCritStats().crit
+          }
+          else makeParticles(damagePlayer, 1)
+          updateEnemyCurrentHP(attack/2)},240)}
+          else updateEnemyCurrentHP(attack)
       }
       else
         player.main.cooldowns.burningMax = player.main.character.skill.fire;
@@ -5267,8 +5580,13 @@ addLayer("main", {
       (!player.main.character.skill.fire_tickdamage &&
       player.main.cooldowns.burningMax > 0)
     ) {
-    makeParticles(damagePlayer, 1)
-      updateEnemyCurrentHP(getTotalAttack());
+      let attack = getTotalAttack()
+      let critCheck=Math.random()
+      if (critCheck<getCritStats().crit_chance) {
+          makeParticles(damagePlayerCrit, 1)
+           attack*=getCritStats().crit}
+        else makeParticles(damagePlayer, 1)
+      updateEnemyCurrentHP(attack);
       player.main.cooldowns.burntCooldown = 0;
       player.main.cooldowns.burningMax -= 1;
       player.main.cooldowns.burningMax = Math.max(
@@ -5284,14 +5602,17 @@ addLayer("main", {
       player.main.floor.monster.healthPoints = getMaxEnemyHP();
     }
     if (player.main.floor.monster.healthPoints.lte(0)) {
+      player.main.floor.monster.healthPoints = new Decimal(getMaxEnemyHP());
       if (player.main.floor.currentMonster >= player.main.floor.monsters) {
+          player.main.floor.currentMonster=0
+          player.main.floor.floorNumber+=1
           player.main.character.skill_choose = getRandomCards();
           player.inCardChoose = true;
+          player.main.floor.monsters = Math.floor(Math.random()* (9-3)+3)
       }
       player.main.gold=player.main.gold.add(getStageRewards().gold.div(player.main.floor.monsters))
       player.main.character.exp = player.main.character.exp.add(getStageRewards().exp.div(player.main.floor.monsters))
       let dropChance = Math.random();
-      console.log(dropChance);
       player.main.character.healthPoints = new Decimal(getMaxPlayerHP());
       if (player.main.floor.currentMonster<player.main.floor.monsters) player.main.floor.currentMonster += 1;
       else {
@@ -5300,6 +5621,7 @@ addLayer("main", {
       }
       player.main.floor.monster.healthPoints = getMaxEnemyHP();
       let x = 0;
+      let y = getItemDropChances().minDrop;
       let rarityItems = [
         function () {
           return;
@@ -5322,23 +5644,34 @@ addLayer("main", {
           return;
         },
       ];
-      console.log(rarityItems[0](false), rarityItems[1](false));
-      for (let i = 0; i < getItemDropChances().length; i++) {
-        if (dropChance < getItemDropChances()[i]) {
-          x += 1;
+      for (let i = 0; i < getItemDropChances().chances.length; i++) {
+        if (dropChance < getItemDropChances().chances[i]) {
+          x = i+1;
           console.log(
-            dropChance < getItemDropChances()[i],
+            "if check: ",
+            dropChance < getItemDropChances().chances[i],
+            "chance current: ",
             dropChance,
-            getItemDropChances()[i],
+            'chances drop: ',
+            getItemDropChances().chances,
+            'chances drop (i): ',
+            getItemDropChances().chances[i],
+            'x: ',
             x,
+            "y: ",
+            y,
+            "i: ",
             i
           );
         }
       }
       if (x >= 1 && x<=2) {
+        let grid = player.main.grid
+        let slots = Object.keys(grid).filter(x => grid[x].rarity<1 && (x!=607 && Math.floor(x/100)!=7 && Math.floor(x%10)!=7))
         let max = rarityItems[x](false).length - 1;
         let checkItem = Math.floor(Math.random() * (max - 0) + 0);
-        console.log(rarityItems[x](true, checkItem), x);
+        player.main.grid[slots[0]] = rarityItems[x](true, checkItem)
+        console.log(rarityItems[x](true, checkItem), x, slots);
         x = 0;
       }
       getMob()

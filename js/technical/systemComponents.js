@@ -63,6 +63,7 @@ var systemComponents = {
 		props: ['layer', 'back', 'spacing', 'embedded'],
 		template: `
 		<div  v-bind:style="[tmp[layer].style ? tmp[layer].style : {}, (tmp[layer].tabFormat && !Array.isArray(tmp[layer].tabFormat)) ? tmp[layer].tabFormat[player.subtabs[layer].mainTabs].style : {}]" class="noBackground">
+		<button onclick='leaveBoss()' v-if='player.main.floor.currentMonster==player.main.floor.monsters&&layer=="tree-tab"' style='cursor: pointer;border:2px solid red; background-color: rgba(0,0,0,0.7); color:white'>Покинуть битву с боссом</button>
 		<div v-if="!tmp[layer].tabFormat">
 			<div v-if="spacing" v-bind:style="{'height': spacing}" :key="this.$vnode.key + '-spacing'"></div>
 			<infobox v-if="tmp[layer].infoboxes" :layer="layer" :data="Object.keys(tmp[layer].infoboxes)[0]":key="this.$vnode.key + '-info'"></infobox>
@@ -87,6 +88,7 @@ var systemComponents = {
 				<column :layer="layer" :data="tmp[layer].tabFormat" :key="this.$vnode.key + '-col'"></column>
 			</div>
 			<div v-else>
+			
 				<div class="upgTable" v-bind:style="{'padding-top': (embedded ? '0' : '25px'), 'margin-top': (embedded ? '-10px' : '0'), 'margin-bottom': '24px'}">
 					<tab-buttons v-bind:style="tmp[layer].componentStyles['tab-buttons']" :layer="layer" :data="tmp[layer].tabFormat" :name="'mainTabs'"></tab-buttons>
 				</div>
