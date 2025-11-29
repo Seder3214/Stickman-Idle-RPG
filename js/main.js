@@ -6,6 +6,25 @@ function leaveBoss() {
   player.main.cooldowns.attackCooldown=0
   player.main.cooldowns.monsterAttackCooldown=0
 }
+function getPrestige() {
+  player.main.fame_coins = player.main.fame_coins.add(getPrestigeCurrencyGain())
+  for (i in player.main.cards) {
+    player.main.cards[i] = 0
+  }
+  for (i in player.main.grid) {
+    player.main.grid[i]={ item_type: "none", item_name: "", level: 0, rarity: 0 }
+  }
+  for (i in player.main.skill_grid) {
+    player.main.skill_grid[i].duplicates = 0
+    player.main.skill_grid[i].level = 0
+  }
+  player.main.character.level = new Decimal(1)
+  player.main.character.exp = new Decimal(0)
+  player.main.floor.floorNumber=1
+  player.main.floor.currentMonster=1
+  player.main.floor.monsters = Math.floor(Math.random() * (9-3)+3)
+  player.main.character.firstPrestige = true
+}
 /*-------------------------
   | Функции характеристик |
   -------------------------*/
@@ -240,7 +259,7 @@ function getScaleBuffs(slot = false, type = "") {
           let base = data[j];
           let currentScaleNames = scaleNames;
           
-          if (j === 'defense') {
+          if (j === 'defense'|| mageStats.includes(j)) {
             currentScaleNames = defenseScaleNames;
           }
           
@@ -264,10 +283,8 @@ function getScaleBuffs(slot = false, type = "") {
           }
           
           let statDisplay = !mageStats.includes(i) ? i.split("_")[0] : i;
-          console.log("Processing:", i, "for stat:", j);
           
           if (!player.main.character[statDisplay] || !player.main.character[`multi_${statDisplay}`]) {
-            console.warn("Missing character property for:", statDisplay);
             return;
           }
           
@@ -373,7 +390,6 @@ function getTotalAttack() {
   let totalAttack = slotAttack + (scaleAttack ? scaleAttack : 0);
   if (player.main.character.skill.fire_tickdamage)
     totalAttack = totalAttack * player.main.character.skill.fire_tickdamage;
-  console.log(mainDamage+fireAttack+waterAttack+lightningAttack+earthAttack, mainDamage, fireAttack, waterAttack, lightningAttack, earthAttack)
   totalAttack = totalAttack * (mainDamage+fireAttack+waterAttack+lightningAttack+earthAttack)
   return totalAttack;
 }
@@ -662,7 +678,6 @@ function getMob() {
     let random = Math.floor(Math.random()*(5-0)+0)
     mobs = ["Слизень","Слизень","Слизень","Слизень","Гоблин"]
     mobs = mobs[random]
-    console.log(random)
     skill = {damage:mobs[random]=="Гоблин"?1.25:1,cooldown:mobs[random]=="Гоблин"?1:0.75}
   }
   if (stage<=10) {
@@ -738,7 +753,7 @@ function getItemDropChances() {
     minDrop=1
   }
   if (stage <= 20) {
-    chances = [2 + stage * 2, 1 + stage * 1.35, 0, 0, 0, 0, 0];
+    chances = [2 + stage * 2, 1 + stage * 1.15, 0, 0, 0, 0, 0];
     minDrop=0
   }
   if (stage <= 10) {
@@ -764,6 +779,7 @@ function getItemDropChances() {
     let totalGold = player.main.totalGold
     let level = player.main.character.level
     let gain = new Decimal(2).mul(totalGold.root(10).max(1).pow(0.75)).mul(level.max(1).root(1.5).pow(1.5).add(1)).mul(level.gte(10)?level.max(1).root(1.5).pow(0.95).add(1):1)
+    if (level.lte(10)) gain = new Decimal(0)
     return gain
   }
 /*--------------
@@ -1063,17 +1079,18 @@ function toggleGridAndSlot(type) {
     player.main.checkToggleGridId != "" &&
     player.main.checkToggleSlotId != ""
   ) {
-    if (player.main.grid[player.main.checkToggleGridId].item_name!='Debug')console.log(getGridData("main", player.main.checkToggleGridId));
+    if (player.main.grid[player.main.checkToggleGridId].item_name!='')console.log(getGridData("main", player.main.checkToggleGridId));
     let slotData = player.main.equipment[type];
     let temp1 = player.main.equipment[type].forgeLevel;
     let temp2 = player.main.equipment[type].forgeMult;
     let rarity = player.main.equipment[type].forgeRarity!=0?player.main.equipment[type].forgeRarity:player.main.equipment[type].rarity;
-    if (!(player.main.grid[player.main.checkToggleGridId].item_name=='Debug') && player.main.grid[player.main.checkToggleGridId].item_type!='none') player.main.equipment[type] = getGridData(
+    if (!(player.main.grid[player.main.checkToggleGridId].item_name=='') && player.main.grid[player.main.checkToggleGridId].item_type!='none') player.main.equipment[type] = getGridData(
       "main",
       player.main.checkToggleGridId
     );
     else player.main.equipment[type] = {         
-          item_type: `${type}`,
+          item_type: `none`,
+          item_name:'',
           level: 0,
           rarity: 0,
           forgeMult: temp2,
@@ -1976,7 +1993,6 @@ function getRandomCards() {
   for (i = 1; i <= 3; i++) {
     if (i < 3) {
       let chance = Math.random()
-      console.log(chance)
       if (chance < 0.25) {
         cards = getUncommonUC(false)[0];
         skillCards = getUncommonUC(true)[0]
@@ -2170,6 +2186,7 @@ addLayer("main", {
         level: new Decimal(1),
         exp: new Decimal(0),
         skill: {},
+        firstPrestige:false,
       },
       cooldowns: {
         attackCooldown: 0,
@@ -3255,7 +3272,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass;
@@ -3348,7 +3365,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass;
@@ -3441,7 +3458,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass;
@@ -3536,7 +3553,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[13].gte(3);
@@ -3630,7 +3647,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[13].gte(3);
@@ -3724,7 +3741,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[12].gte(3);
@@ -3818,7 +3835,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[12].gte(3);
@@ -3912,7 +3929,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass && player.main.buyables[14].gte(3);
@@ -4006,7 +4023,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[14].gte(3);
@@ -4100,7 +4117,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[17].gte(5)&& player.main.buyables[18].gte(5);
@@ -4194,7 +4211,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[15].gte(5)&& player.main.buyables[16].gte(2);
@@ -4288,7 +4305,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[22].gte(10);
@@ -4382,7 +4399,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[22].gte(10);
@@ -4476,7 +4493,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[22].gte(10);
@@ -4572,7 +4589,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[22].gte(10);
@@ -4667,7 +4684,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[21].gte(10);
@@ -4761,7 +4778,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[21].gte(10);
@@ -4855,7 +4872,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[21].gte(10);
@@ -4949,7 +4966,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[23].gte(10);
@@ -5043,7 +5060,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[23].gte(10);
@@ -5137,7 +5154,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>9;
+        return player.main.character.firstPrestige==true;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[23].gte(10);
@@ -5224,10 +5241,10 @@ addLayer("main", {
     rows: 1,
     cols: 5,
     getSkillData(id) {
-      let fireAttack = player.main.character['fire_attack'].toNumber()+getSlotBuffs().fire_attack+(player.main.character['scaled_fire_attack']?player.main.character['scaled_fire_attack'].toNumber():0)
-      let waterAttack = player.main.character['water_attack'].toNumber()+getSlotBuffs().water_attack+(player.main.character['scaled_water_attack']?player.main.character['scaled_water_attack'].toNumber():0)
-      let lightningAttack = player.main.character['lightning_attack'].toNumber()+getSlotBuffs().lightning_attack+(player.main.character['scaled_lightning_attack']?player.main.character['scaled_lightning_attack'].toNumber():0)
-      let earthAttack = player.main.character['earth_attack'].toNumber()+getSlotBuffs().earth_attack+(player.main.character['scaled_earth_attack']?player.main.character['scaled_earth_attack'].toNumber():0)
+      let fireAttack = player.main.character['fire_attack'].toNumber()+getSlotBuffs().fire_attack+getSlotBuffs().scaled_fire_attack
+      let waterAttack = player.main.character['water_attack'].toNumber()+getSlotBuffs().water_attack+getSlotBuffs().scaled_water_attack
+      let lightningAttack = player.main.character['lightning_attack'].toNumber()+getSlotBuffs().lightning_attack+getSlotBuffs().scaled_lightning_attack
+      let earthAttack = player.main.character['earth_attack'].toNumber()+getSlotBuffs().earth_attack+getSlotBuffs().scaled_earth_attack
       let startDesc = getSkills((id % 10) - 1 + (Math.floor(id / 100) - 1) * 7);
       if (getSkillGridData("main", id).level > 0) {
         if (startDesc.damage) startDesc.damage *= 1.15 ** getSkillGridData("main", id).level;
@@ -5381,7 +5398,7 @@ addLayer("main", {
     rows: 7,
     cols: 7,
     getStartData(id) {
-      return { item_type: "none", item_name: "Debug", level: 0, rarity: 0 };
+      return { item_type: "none", item_name: "", level: 0, rarity: 0 };
     },
     getUnlocked(id) {
       console.log
@@ -5427,7 +5444,7 @@ addLayer("main", {
       toggleGrids();
     },
     getDisplay(data, id) {
-      return id==607?"<h5>Корзина</h5>":`<span style='font-size:11px'>${data.item_name}</span>`;
+      return id==607?"<h5>Корзина</h5>":`<span style='font-size:11px'>${data.item_name?data.item_name:""}</span>`;
     },
     //Функция для текста в всплывалющем тултипе
     getTooltip(data, id) {
@@ -5570,7 +5587,8 @@ addLayer("main", {
               "display-text",
               function () {
                 let table = `<div style='background-color: rgba(23, 23, 23, 1); width:90%; height:20%; padding: 0px 5px 15px 5px; border:3px solid gold'><br>Сбросьте всё полученное золото, уровень, карты улучшения и экипировку в инвентаре <br>(не одетую) и взамен получите Монеты Славы.
-                 <br>Полученные Монеты Славы можно потратить на различные улучшения в<br>Дереве Усилений.<br><br>Текущее количество <span style='color:orange'>Монет Славы</span> для получения: <b style='color:orange'>${format(getPrestigeCurrencyGain())}</b></div>`;
+                 <br>Полученные Монеты Славы можно потратить на различные улучшения в<br>Дереве Усилений.<br>Для совершения престижа достигните 10 уровня персонажа.<br>Текущее количество <span style='color:orange'>Монет Славы</span> для получения: <b style='color:orange'>${format(getPrestigeCurrencyGain())}</b></div><br>
+                 <button style='width:200px; height:75px; color:white; border:2px solid gold; ${player.main.character.level.gte(10)?("cursor: pointer; background:rgba(91, 91, 91, 0.5);"):("cursor: no-drop; background:rgba(43, 43, 43, 0.5);")}' onClick='getPrestige()'>Совершить престиж</button>`;
                 return (table);
               },
             ],
@@ -5753,7 +5771,7 @@ addLayer("main", {
           break
       }
     if (number!='none') document.getElementById("treeOverlay").style.backgroundImage = `url(${number})`;
-    if (player.main.grid[607].rarity>0) player.main.grid[607]= { item_type: "none", item_name: "Debug", level: 0, rarity: 0 };
+    if (player.main.grid[607].rarity>0) player.main.grid[607]= { item_type: "none", item_name: "", level: 0, rarity: 0 };
     if (player.main.character.skillId){ 
       if (player.main.character.skill!=tmp.main.skill_grid.getSkillData(player.main.character.skillId)) player.main.character.skill=tmp.main.skill_grid.getSkillData(player.main.character.skillId)}
     if (player.inCardChoose|| player.inClassChoose) {
@@ -5890,22 +5908,6 @@ addLayer("main", {
       for (let i = 0; i < getItemDropChances().chances.length; i++) {
         if (dropChance < getItemDropChances().chances[i]) {
           x = i+1;
-          console.log(
-            "if check: ",
-            dropChance < getItemDropChances().chances[i],
-            "chance current: ",
-            dropChance,
-            'chances drop: ',
-            getItemDropChances().chances,
-            'chances drop (i): ',
-            getItemDropChances().chances[i],
-            'x: ',
-            x,
-            "y: ",
-            y,
-            "i: ",
-            i
-          );
         }
       }
       if (x >= 1 && x<=2) {
@@ -5915,7 +5917,6 @@ addLayer("main", {
         let checkItem = Math.floor(Math.random() * (max - 0) + 0);
         player.main.grid[slots[0]] = rarityItems[x](true, checkItem)
         doPopup("none",`Вам выпало снаряжение!<hr color='black'><div style='background-color: ${getRariryColor(rarityItems[x](true, checkItem).rarity)}; color:black'>${rarityItems[x](true, checkItem).item_name}</div><hr color='black'>`,"Снаряжение",3,"grey","rgba(183, 183, 183, 1)")
-        console.log(rarityItems[x](true, checkItem), x, slots);
         x = 0;
       }
       getMob()
