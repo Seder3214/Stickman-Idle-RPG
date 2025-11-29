@@ -3220,19 +3220,30 @@ addLayer("main", {
   buyables: {
     11: {
       cost(x) {
-        return new Decimal(0).mul(x);
+        let costBase = [null,new Decimal(10),new Decimal(1000), new Decimal(1e5), new Decimal(1e7)]
+        let costIncreaseCap = [null,10,15 ,17,19,21]
+        let costIncreasePow = [null, 5,1.55,1.35,1.15,1.1]
+        let cost = new Decimal(0)
+        
+        if (player.main.checkToggleSlotId!='') {
+          let data = tmp.main.clickables[player.main.checkToggleSlotId].type
+          base = costBase[player.main.equipment[data].rarity]
+         cost = base.mul(player.main.equipment[data].forgeLevel.add(1)).pow(player.main.equipment[data].forgeLevel>costIncreaseCap[player.main.equipment[data].rarity]?
+          costIncreasePow[player.main.equipment[data].rarity]+(player.main.equipment[data].forgeLevel/costIncreaseCap[player.main.equipment[data].rarity]):1+(player.main.equipment[data].forgeLevel/costIncreaseCap[player.main.equipment[data].rarity]*2))
+        console.log(cost, player.main.equipment[data].forgeLevel)}
+        return cost.gte(1)?cost:new Decimal(0)
       },
       display() {
-        return "<h5>Усилить экипировку в данном слоте</h5>";
+        return `<h5>Усилить экипировку в данном слоте. <br>Стоимость: ${format(this.cost(),2)} золота</h5>`;
       },
       unlocked() {
         return player.main.checkToggleSlotId != "";
       },
       canAfford() {
-        return player[this.layer].points.gte(this.cost());
+        return player.main.gold.gte(this.cost());
       },
       buy() {
-        player[this.layer].points = player[this.layer].points.sub(this.cost());
+        player.main.gold = player.main.gold.sub(this.cost());
         setBuyableAmount(
           this.layer,
           this.id,
@@ -3250,7 +3261,7 @@ addLayer("main", {
       style() {
         return {
           width: "205px",
-          height: "50px",
+          height: "60px",
           border: "4px solid rgba(182, 150, 96, 1)",
           "border-radius": "0",
           "background-repeat": "no-repeat",
