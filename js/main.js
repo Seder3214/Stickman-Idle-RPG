@@ -24,7 +24,8 @@ function updatePlayerStats() {
   let attack = getSlotBuffs().attack
   let fire_attack = className=='mage'?new Decimal(1):new Decimal(0)
   let water_attack = className=='mage'?new Decimal(1):new Decimal(0)
-  let poison_attack = className=='mage'?new Decimal(1):new Decimal(0)
+  let lightning_attack = className=='mage'?new Decimal(1):new Decimal(0)
+  let earth_attack = className=='mage'?new Decimal(1):new Decimal(0)
   let luck = className=='archer'?new Decimal(2):new Decimal(1)
   let crit = new Decimal(100)
   let crit_chance = className=='archer'?new Decimal(5):new Decimal(0)
@@ -49,6 +50,10 @@ function updatePlayerStats() {
   luck = luck.add(data.common_luc).add(data.uncommon_luc*3).add(className=='archer'?buyableEffect('main',24):0)
   crit_chance = crit_chance.add(className=='archer'?buyableEffect('main',16):0).add(className=='archer'?buyableEffect('main',25).eff:0).add(data.uncommon_crit_chance*2)
   crit = crit.add(className=='archer'?buyableEffect('main',25).eff2:0)
+  fire_attack = fire_attack.mul(1.05**(data.common_fire_amp)).mul(1.1**(data.uncommon_fire_amp))
+  water_attack = water_attack.mul(1.05**(data.common_wtr_amp)).mul(1.1**(data.uncommon_wtr_amp))
+  lightning_attack = lightning_attack.mul(1.05**(data.common_lgt_amp)).mul(1.1**(data.uncommon_lgt_amp))
+  earth_attack = earth_attack.mul(1.05**(data.common_earth_amp)).mul(1.1**(data.uncommon_earth_amp))
   if (vitality!=player.main.character.vitality)player.main.character.vitality = vitality
   if (strength!=player.main.character.strength)player.main.character.strength = strength
   if (agility!=player.main.character.agility)player.main.character.agility = agility
@@ -56,6 +61,10 @@ function updatePlayerStats() {
   if (luck!=player.main.character.luck)player.main.character.luck = luck
   if (crit_chance!=player.main.character.crit_chance)player.main.character.crit_chance = crit_chance
   if (crit!=player.main.character.crit) player.main.character.crit = crit
+  if (fire_attack!=player.main.character.fire_attack) player.main.character.fire_attack = fire_attack
+  if (water_attack!=player.main.character.water_attack) player.main.character.water_attack = water_attack
+  if (lightning_attack!=player.main.character.lightning_attack) player.main.character.lightning_attack = lightning_attack
+  if (earth_attack!=player.main.character.earth_attack) player.main.character.earth_attack= earth_attack
 }
 function getMaxPlayerHP() {
   let level = player.main.character.level;
@@ -152,99 +161,144 @@ function updateSlotScaleBuffs() {
     }
 }
 function getScaleBuffs(slot = false, type = "") {
-  let scales = [
-    "vitality_scale",
-    "strength_scale",
-    "agility_scale",
-    "intelligence_scale",
-  ];
-  let scaled_stats = excludeStats();
-  let scaleNames = {
-    "-": 0,
-    FF: 0.075,
-    F: 0.1,
-    E: 0.375,
-    D: 1.75,
-    C: 2.25,
-    B: 7.65,
-    A: 12.435,
-    S: 16.342,
-    SS: 22.017,
-    SSS: 28.064,
-    R: 38.001,
-    SR: 49.932,
-    SSR: 61.078,
-    UR: 74.12,
-    X: 107.13,
-  };
-  let data = player.main.equipment[type];
-  let currentEffect = 0;
-  let currentStat = "";
-  for (i in data) {
-    if (scales.includes(i)) {
-      for (j in data) {
-        if (j != "speed" && !scaled_stats.includes(j) && data[j] > 0) {
+  let isCalculating = false;
+  if (isCalculating) return;
+  isCalculating = true;
+  
+  try {
+    let mageStats = [
+      'fire_attack',
+      'water_attack', 
+      'lightning_attack',
+      'earth_attack'
+    ];
+    
+    let scales = [
+      "vitality_scale",
+      "strength_scale", 
+      "agility_scale",
+      "intelligence_scale",
+    ];
+    
+    let exclude = ["fire_attack","water_attack","lightning_attack","earth_attack"];
+    let scaled_stats = excludeStats();
+    
+    // Добавляем не-числовые свойства которые нужно игнорировать
+    let nonStatProperties = ["item_type", "item_subtype", "speed", "name", "id", "rarity"];
+    
+    let scaleNames = {
+      "-": 0,
+      FF: 0.075,
+      F: 0.1,
+      E: 0.375,
+      D: 1.75,
+      C: 2.25,
+      B: 7.65,
+      A: 12.435,
+      S: 16.342,
+      SS: 22.017,
+      SSS: 28.064,
+      R: 38.001,
+      SR: 49.932,
+      SSR: 61.078,
+      UR: 74.12,
+      X: 107.13,
+    };
+    
+    let defenseScaleNames = {
+      "-": 0,
+      FF: 0.0075,
+      F: 0.02,
+      E: 0.085,
+      D: 0.25,
+      C: 0.5,
+      B: 1.15,
+      A: 1.435,
+      S: 2.342,
+      SS: 3.017,
+      SSS: 4.064,
+      R: 6.001,
+      SR: 7.932,
+      SSR: 9.078,
+      UR: 11.12,
+      X: 15.13,
+    };
+    
+    let data = player.main.equipment[type];
+    let scaledEffects = {};
+    
+    Object.keys(data).forEach(i => {
+      if (scales.includes(i)) {
+        Object.keys(data).forEach(j => {
+          // Улучшенная фильтрация - только числовые статы
+          if (!data.hasOwnProperty(j)) return;
+          if (nonStatProperties.includes(j)) return;
+          if (scaled_stats.includes(j)) return;
+          if (!data[j] || data[j] <= 0) return;
+          if (typeof data[j] !== 'number') return; // Важно: только числа!
+          
           let base = data[j];
-          if (j=='defense') {
-            scaleNames = {
-              "-": 0,
-              FF: 0.0075,
-              F: 0.02,
-              E: 0.085,
-              D: 0.25,
-              C: 0.5,
-              B: 1.15,
-              A: 1.435,
-              S: 2.342,
-              SS: 3.017,
-              SSS: 4.064,
-              R: 6.001,
-              SR: 7.932,
-              SSR: 9.078,
-              UR: 11.12,
-              X: 15.13,
-            };
+          let currentScaleNames = scaleNames;
+          
+          if (j === 'defense') {
+            currentScaleNames = defenseScaleNames;
           }
-        if (j=='attack') {
-              base *= 1.05**player.main.cards.common_atk_amp
-              base *= 1.15**player.main.cards.uncommon_atk_amp
+          
+          if (j === 'attack') {
+            base *= 1.05**player.main.cards.common_atk_amp;
+            base *= 1.15**player.main.cards.uncommon_atk_amp;
             switch (player.main.character.class) {
               case 'warrior':
-                base *= buyableEffect('main',12)
-                base *= buyableEffect('main',21)
-                break
+                base *= buyableEffect('main',12);
+                base *= buyableEffect('main',21);
+                break;
               case 'archer':
-                base *= buyableEffect('main',13)
-                base *= buyableEffect('main',22)
-                break
+                base *= buyableEffect('main',13);
+                base *= buyableEffect('main',22);
+                break;
               case 'mage':
-                base *= buyableEffect('main',14)
-                base *= buyableEffect('main',23)
-                break
-    }
-
-    }
-          currentStat = j;
-          let subI = i;
-          let statDisplay = subI.split("_")[0];
-          let mainStat =
-            (player.main.character[statDisplay].toNumber() +
-              (getSlotBuffs()[`add_${statDisplay}`]
-                ? getSlotBuffs()[`add_${statDisplay}`]
-                : 0)) *
-            player.main.character[`multi_${statDisplay}`];
-          let multi = scaleNames[data[subI]] * mainStat + 1;
-          if (multi > 1)
-            currentEffect +=
-              Math.log(base * multi) *
-              Math.sqrt(Math.pow(base, currentStat=='defense'?1.15:1.25)) *
-              (multi*scaleNames[data[subI]])/10;
-        }
+                base *= buyableEffect('main',14);
+                base *= buyableEffect('main',23);
+                break;
+            }
+          }
+          
+          let statDisplay = !mageStats.includes(i) ? i.split("_")[0] : i;
+          console.log("Processing:", i, "for stat:", j);
+          
+          if (!player.main.character[statDisplay] || !player.main.character[`multi_${statDisplay}`]) {
+            console.warn("Missing character property for:", statDisplay);
+            return;
+          }
+          
+          let addStat = getSlotBuffs()[`add_${statDisplay}`] || 0;
+          let mainStat = (player.main.character[statDisplay].toNumber() + addStat) * 
+                        player.main.character[`multi_${statDisplay}`];
+          
+          let multi = currentScaleNames[data[i]] * mainStat + 1;
+          
+          if (multi > 1) {
+            let effect = Math.log(base * multi) *
+              Math.sqrt(Math.pow(base, j === 'defense' ? 1.15 : 1.25)) *
+              (multi * currentScaleNames[data[i]]) / 10;
+            
+            if (!scaledEffects[j]) {
+              scaledEffects[j] = 0;
+            }
+            scaledEffects[j] += effect;
+          }
+        });
       }
+    });
+    
+    if (slot) {
+      Object.keys(scaledEffects).forEach(statName => {
+        player.main.equipment[type][`scaled_${statName}`] = scaledEffects[statName];
+      });
     }
+  } finally {
+    isCalculating = false;
   }
-  if (slot && currentStat != "")
-    player.main.equipment[type][`scaled_${currentStat}`] = currentEffect;
 }
 function updateSlotStats() {
   let slot = player.main.equipment;
@@ -310,12 +364,17 @@ function getFullStat(stat) {
 }
 function getTotalAttack() {
   let slotAttack = getSlotBuffs().attack;
+  let mainDamage = player.main.character.skill.damage?player.main.character.skill.damage:0
   let scaleAttack = player.main.equipment.primary_weapon.scaled_attack;
+  let fireAttack = player.main.character.skill.fire_damage?player.main.character.skill.fire_damage:0
+  let waterAttack = player.main.character.skill.water_damage?player.main.character.skill.water_damage:0
+  let lightningAttack = player.main.character.skill.lightning_damage?player.main.character.skill.lightning_damage:0
+  let earthAttack = player.main.character.skill.earth_damage?player.main.character.skill.earth_damage:0
   let totalAttack = slotAttack + (scaleAttack ? scaleAttack : 0);
-  if (player.main.character.skill.damage)
-    totalAttack = totalAttack * player.main.character.skill.damage;
   if (player.main.character.skill.fire_tickdamage)
     totalAttack = totalAttack * player.main.character.skill.fire_tickdamage;
+  console.log(mainDamage+fireAttack+waterAttack+lightningAttack+earthAttack, mainDamage, fireAttack, waterAttack, lightningAttack, earthAttack)
+  totalAttack = totalAttack * (mainDamage+fireAttack+waterAttack+lightningAttack+earthAttack)
   return totalAttack;
 }
 function getTotalMonsterAttack() {
@@ -335,12 +394,18 @@ function getSlotBuffs() {
     speed: 0,
     defense: 0,
     luck: 0,
-    fire_attack: 0,
     poison_attack: 0,
     water_attack: 0,
+    fire_attack:0,
+    earth_attack:0,
+    lightning_attack:0,
     scaled_attack: 0,
     scaled_defense: 0,
     scaled_luck: 0,
+    scaled_water_attack: 0,
+    scaled_fire_attack:0,
+    scaled_earth_attack:0,
+    scaled_lightning_attack:0,
     crit: 0,
     crit_chance: 0,
   };
@@ -386,7 +451,7 @@ function getNextForgeMult(id) {
   let type = tmp.main.clickables[player.main.checkToggleSlotId].type;
   let level = data.forgeLevel.add(1);
   let scaleTypes = ["necklace", "ring_1", "ring_2", "bracelet"];
-  let eff = new Decimal(scaleTypes.includes(type) ? 0.025 : 0.15).mul(level);
+  let eff = new Decimal(scaleTypes.includes(type) ? 0.085 : 0.15).mul(level);
   eff = eff.mul(level.div(10).add(1)).mul(level.sqrt().div(10).add(1));
   return eff.add(1).pow(data.rarity).max(1);
 }
@@ -489,7 +554,51 @@ function getSkills(id) {
           },
         ];
         break
-
+case 'mage':
+      skills = [
+          {
+            skill_name: "Простое заклинание",
+            skill_image: "basic_attack",
+            damage: 1,
+            cooldown: 1,
+            rarity: 0,
+            level: 0,
+          },
+          {
+            skill_name: "Ледяной шип",
+            skill_image: "ice_spile",
+            water_damage: 1.43,
+            cooldown: 1.25,
+            rarity: 1,
+            level: 0,
+          },
+          {
+            skill_name: "Сфера молний",
+            skill_image: "lightning_sphere",
+            lightning_damage: 2.50,
+            cooldown: 2,
+            rarity: 1,
+            level: 0,
+          },
+          {
+            skill_name: "Огненный шар",
+            skill_image: "fireball",
+            fire_damage: 3.5,
+            cooldown: 3.5,
+            rarity: 1,
+            level: 0,
+          },
+          {
+            skill_name: "Сотрясение вулкана",
+            skill_image: "volcano_crash",
+            fire_damage: 1.45,
+            earth_damage:4.12,
+            cooldown: 2.67,
+            rarity: 2,
+            level: 0,
+          },
+        ];
+        break
   }
   return skills[id];
 }
@@ -561,7 +670,7 @@ function getMob() {
     skill = {damage:1,cooldown:0.75}
   }
   player.main.floor.monster.name=mobs
-  player.main.floor.monster.attack = 2*(stage**1.25)*(stage>10?(((stage-10)+1)**1.15):1)*((current*0.1)+1)
+  player.main.floor.monster.attack = 2*(stage**1.25)*(stage>10?(((stage-10)+1)**1.35):1)*((current*0.1)+1)
   if (player.main.floor.currentMonster==player.main.floor.monsters) {
     player.main.floor.monster.name="[Босс] "+mobs
     player.main.floor.boss.skill = skill}
@@ -633,7 +742,7 @@ function getItemDropChances() {
     minDrop=0
   }
   if (stage <= 10) {
-    chances = [9 * stage + luck, 0, 0, 0, 0, 0, 0];
+    chances = [3 * stage, 0, 0, 0, 0, 0, 0];
     minDrop=0
   }
   for (i = 0; i < chances.length; i++) {
@@ -789,6 +898,10 @@ function excludeStats() {
     "scaled_attack",
     "scaled_defense",
     "scaled_luck",
+    "scaled_fire_attack",
+    "scaled_water_attack",
+    "scaled_lightning_attack",
+    "scaled_earth_attack",
     "forgeMult",
     "forgeLevel",
     "forgeRarity",
@@ -851,9 +964,15 @@ function getStatName(stat, value) {
     case "fire_attack":
       return `Огненный урон: +${format(value, 0)}`;
       break;
+    case "lightning_attack":
+          return `Урон молнией: +${format(value, 0)}`;
+          break;
     case "water_attack":
       return `Водный урон: +${format(value, 0)}`;
       break;
+    case "earth_attack":
+          return `Земляной урон: +${format(value, 0)}`;
+          break;
     case "poison_attack":
       return `Отравление: +${format(value, 0)}`;
       break;
@@ -913,10 +1032,16 @@ function getPlayerStats(stat, value, bonus) {
       return `<div class='statDiv'>Удача:</div><div class='statDiv'>${format(value, 0)}</div><div class='statDiv'>${format(bonus, 0)} (${format(getSlotBuffs()["scaled_luck"], 2)})</div><div class='statDiv' style='width:260px'>x${format(player.main.character.multi_luck, 2)} | -</div>`;
       break;
     case "fire_attack":
-      return `<div class='statDiv'>Огненный урон:</div><div class='statDiv'>${format(value, 0)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1, 2)}</div>`;
+      return `<div class='statDiv'>Огненный урон:</div><div class='statDiv'>${format(value, 2)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1, 2)}</div>`;
       break;
     case "water_attack":
-      return `<div class='statDiv'>Водный урон:</div><div class='statDiv'>${format(value, 0)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1, 2)}</div>`;
+      return `<div class='statDiv'>Водный урон:</div><div class='statDiv'>${format(value, 2)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1, 2)}</div>`;
+      break;
+    case "lightning_attack":
+      return `<div class='statDiv'>Урон молнией:</div><div class='statDiv'>${format(value, 2)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1, 2)}</div>`;
+      break;
+    case "earth_attack":
+      return `<div class='statDiv'>Земляной урон:</div><div class='statDiv'>${format(value, 2)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1, 2)}</div>`;
       break;
     case "poison_attack":
       return `<div class='statDiv'>Отравление:</div><div class='statDiv'>${format(value, 0)}</div><div class='statDiv'>${format(bonus, 0)}</div><div class='statDiv' style='width:260px'>x${format(1, 2)} | x${format(1, 2)}</div>`;
@@ -976,6 +1101,8 @@ function toggleGridAndSlot(type) {
       "defense",
       "fire_attack",
       "water_attack",
+      "lightning_attack",
+      "earth_attack",
       "poison_attack",
       "luck",
       "add_strength",
@@ -1052,6 +1179,8 @@ function getCard(id, skillId = undefined) {
 function setClass(className) {
   player.main.character.class = className
   player.inClassChoose = false;
+  player.main.equipment.primary_weapon = getCommonWeapon()[11]
+  player.main.character.skill = tmp.main.skill_grid.getSkillData(101)
 }
 //Функция для основных кнопок
 function setSubtab(id) {
@@ -1276,7 +1405,7 @@ function getCommonWeapon(ifSingleId = false, itemId) {
         level: 0,
         attack: 3,
         speed: 1.3,
-        fire_attack: 4.5,
+        fire_attack: 1,
         rarity: 1,
       },
       {
@@ -1603,6 +1732,22 @@ function getUncommonUC(skill = false) {
       card_id: "uncommon_wtr_amp",
       rarity: 2,
     },
+{
+      card_name: "Сфера молнии",
+      description: "Урон молнией персонажа ",
+      value: 10,
+      amplify: true,
+      card_id: "uncommon_lgt_amp",
+      rarity: 2,
+    },
+    {
+      card_name: "Сфера земли",
+      description: "Земляной урон персонажа ",
+      value: 10,
+      amplify: true,
+      card_id: "uncommon_earth_amp",
+      rarity: 2,
+    },
   ];
   let skillPool = [
     {
@@ -1621,6 +1766,18 @@ function getUncommonUC(skill = false) {
     skillPool = [
     {
       card_name: "Отравленная стрела",
+      description: "Получить дупликат навыка",
+      skillId: 105,
+      rarity: 2,
+    },
+  ];
+    if (skill == false) chosenPool.push(fullPool);
+    else chosenPool.push(skillPool);
+    }
+  case 'mage': {
+    skillPool = [
+    {
+      card_name: "Сокрушение вулкана",
       description: "Получить дупликат навыка",
       skillId: 105,
       rarity: 2,
@@ -1716,6 +1873,22 @@ function getCommonUC(skill = false) {
       card_id: "common_wtr_amp",
       rarity: 1,
     },
+    {
+      card_name: "Наэлектризованный лист",
+      description: "Урон молнией персонажа ",
+      value: 5,
+      amplify: true,
+      card_id: "common_lgt_amp",
+      rarity: 1,
+    },
+    {
+      card_name: "Твердый лист",
+      description: "Земляной урон персонажа ",
+      value: 5,
+      amplify: true,
+      card_id: "common_earth_amp",
+      rarity: 1,
+    },
   ];
   let skillPool = [
     {
@@ -1758,6 +1931,30 @@ function getCommonUC(skill = false) {
     },
     {
       card_name: "Заряженный выстрел",
+      description: "Получить дупликат навыка",
+      skillId: 104,
+      rarity: 1,
+    },
+  ];
+    if (skill == false) chosenPool.push(fullPool);
+    else chosenPool.push(skillPool);
+    }
+  case 'mage': {
+    skillPool = [
+    {
+      card_name: "Ледяной шип",
+      description: "Получить дупликат навыка",
+      skillId: 102,
+      rarity: 1,
+    },
+    {
+      card_name: "Сфера молний",
+      description: "Получить дупликат навыка",
+      skillId: 103,
+      rarity: 1,
+    },
+    {
+      card_name: "Огненный шар",
       description: "Получить дупликат навыка",
       skillId: 104,
       rarity: 1,
@@ -1820,6 +2017,8 @@ addLayer("main", {
         common_fire_amp: 0,
         common_psn_amp: 0,
         common_wtr_amp: 0,
+        common_lgt_amp:0,
+        common_earth_amp:0,
         uncommon_vit: 0,
         uncommon_str: 0,
         uncommon_agi: 0,
@@ -1830,6 +2029,9 @@ addLayer("main", {
         uncommon_fire_amp: 0,
         uncommon_psn_amp: 0,
         uncommon_wtr_amp: 0,
+        uncommon_wtr_amp: 0,
+        uncommon_lgt_amp:0,
+        uncommon_earth_amp:0,
         uncommon_crit_chance: 0,
       },
       floor: {
@@ -1959,6 +2161,8 @@ addLayer("main", {
         attack: new Decimal(0),
         fire_attack: new Decimal(0),
         water_attack: new Decimal(0),
+        lightning_attack: new Decimal(0),
+        earth_attack:new Decimal(0),
         poison_attack: new Decimal(0),
         luck: new Decimal(0),
         crit: new Decimal(100),
@@ -2050,8 +2254,7 @@ addLayer("main", {
             (player.main.equipment[this.type()].forgeLevel
               ? ` +${player.main.equipment[this.type()].forgeLevel} `
               : " ") +
-            ` ${getRarityName(data.rarity)}` +
-            `</h3><span style='color:rgba(119, 119, 119, 1); font-size:12px'>${getStatName("speed", data["speed"])}</span><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
+            `${getRarityName(data.rarity)}</h3><hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:grey; font-size:12px'> 
             Усиление от характеристик:<br>Сила: ${data.strength_scale == undefined ? "-" : data.strength_scale} | Живучесть: ${data.vitality_scale == undefined ? "-" : data.vitality_scale} 
             <br>Ловкость: ${data.agility_scale == undefined ? "-" : data.agility_scale} | Мудрость: ${data.intelligence_scale == undefined ? "-" : data.intelligence_scale}</span>
             <hr style='border-color:rgba(182, 150, 96, 1)'><span style='color:lime; font-size:12px'>Характеристики:<br>`;
@@ -2059,9 +2262,8 @@ addLayer("main", {
           if (data[i] > 0 && !exclude.includes(i)) {
             stats.push([i]);
             if (stats.length % 2 != 0) statsTable += `| `;
-            if (i != "speed")
-              statsTable += ` ${getStatName(i, data[i])} ${data[`scaled_${i}`] ? `<span style="font-size:10px">(+${format(data[`scaled_${i}`], 2)})</span>` : ``}`;
-            if (stats.length % 2 != 0 && i > 1) statsTable += ` |`;
+            statsTable += `<span style="font-size:10px"> ${getStatName(i, data[i])} ${data[`scaled_${i}`] ? `(+${format(data[`scaled_${i}`], 2)})</span>` : ``}`;
+            if (stats.length % 2 != 0) statsTable += ` |`;
 
             if (stats.length % 2 == 0) statsTable += " |<br>";
           }
@@ -3053,7 +3255,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass;
@@ -3146,7 +3348,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass;
@@ -3239,7 +3441,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass;
@@ -3334,7 +3536,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[13].gte(3);
@@ -3428,7 +3630,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[13].gte(3);
@@ -3522,7 +3724,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[12].gte(3);
@@ -3616,7 +3818,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[12].gte(3);
@@ -3710,7 +3912,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass && player.main.buyables[14].gte(3);
@@ -3804,7 +4006,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[14].gte(3);
@@ -3898,7 +4100,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[17].gte(5)&& player.main.buyables[18].gte(5);
@@ -3992,7 +4194,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[15].gte(5)&& player.main.buyables[16].gte(2);
@@ -4086,7 +4288,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[22].gte(10);
@@ -4180,7 +4382,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[22].gte(10);
@@ -4274,7 +4476,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[22].gte(10);
@@ -4370,7 +4572,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[22].gte(10);
@@ -4465,7 +4667,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[21].gte(10);
@@ -4559,7 +4761,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[21].gte(10);
@@ -4653,7 +4855,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[21].gte(10);
@@ -4747,7 +4949,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[23].gte(10);
@@ -4841,7 +5043,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[23].gte(10);
@@ -4935,7 +5137,7 @@ addLayer("main", {
         return "";
       },
       unlocked() {
-        return player.main.floor.floorNumber>10;
+        return player.main.floor.floorNumber>9;
       },
       canAfford() {
         return player[this.layer].fame_coins.gte(this.cost())&&player.main.character.class==tmp.main.buyables[this.id].reqClass&& player.main.buyables[23].gte(10);
@@ -5022,11 +5224,23 @@ addLayer("main", {
     rows: 1,
     cols: 5,
     getSkillData(id) {
+      let fireAttack = player.main.character['fire_attack'].toNumber()+getSlotBuffs().fire_attack+(player.main.character['scaled_fire_attack']?player.main.character['scaled_fire_attack'].toNumber():0)
+      let waterAttack = player.main.character['water_attack'].toNumber()+getSlotBuffs().water_attack+(player.main.character['scaled_water_attack']?player.main.character['scaled_water_attack'].toNumber():0)
+      let lightningAttack = player.main.character['lightning_attack'].toNumber()+getSlotBuffs().lightning_attack+(player.main.character['scaled_lightning_attack']?player.main.character['scaled_lightning_attack'].toNumber():0)
+      let earthAttack = player.main.character['earth_attack'].toNumber()+getSlotBuffs().earth_attack+(player.main.character['scaled_earth_attack']?player.main.character['scaled_earth_attack'].toNumber():0)
       let startDesc = getSkills((id % 10) - 1 + (Math.floor(id / 100) - 1) * 7);
       if (getSkillGridData("main", id).level > 0) {
-        startDesc.damage *= 1.15 ** getSkillGridData("main", id).level;
+        if (startDesc.damage) startDesc.damage *= 1.15 ** getSkillGridData("main", id).level;
+        if (startDesc.fire_damage) startDesc.fire_damage*=1.05**getSkillGridData("main", id).level
+        if (startDesc.water_damage) startDesc.water_damage*=1.05**getSkillGridData("main", id).level
+        if (startDesc.lightning_damage) startDesc.lightning_damage*=1.05**getSkillGridData("main", id).level
+        if (startDesc.earth_damage) startDesc.earth_damage*=1.05**getSkillGridData("main", id).level
         if (startDesc.fire_tickdamage) startDesc.fire_tickdamage *= 1.15 ** getSkillGridData("main", id).level;
       }
+        if (startDesc.fire_damage) startDesc.fire_damage*=1.025**fireAttack
+        if (startDesc.water_damage) startDesc.water_damage*=1.025**waterAttack
+        if (startDesc.lightning_damage) startDesc.lightning_damage*=1.025**lightningAttack
+        if (startDesc.earth_damage) startDesc.earth_damage*=1.025**earthAttack
       return startDesc;
     },
     getStartData(id) {
@@ -5086,6 +5300,35 @@ addLayer("main", {
         `Делает два последовательных взмаха мечом, нанося ${format((this.getSkillData(id).damage / 2) * 100)}% урона за каждый удар. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
         `Делает взмах мечом, пылающим огнём, накладывая ожог противнику на ${format(this.getSkillData(id).fire)} секунд. Каждую секунду ожог будет наносить ${format(this.getSkillData(id).fire_tickdamage * 100)}% урона каждую секунду. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
       ];
+      switch (player.main.character.class) {
+        case 'warrior':
+          descs = [
+        `Делает простой выпад, нанося ${format(this.getSkillData(id).damage * 100)}% урона. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        `Делает точный и быстрый взмах, нанося ${format(this.getSkillData(id).damage * 100)}% урона. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        `Делает выпад тяжелым щитом, нанося ${format(this.getSkillData(id).damage * 100)}% урона. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        `Делает два последовательных взмаха мечом, нанося ${format((this.getSkillData(id).damage / 2) * 100)}% урона за каждый удар. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        `Делает взмах мечом, пылающим огнём, накладывая ожог противнику на ${format(this.getSkillData(id).fire)} секунд. Каждую секунду ожог будет наносить ${format(this.getSkillData(id).fire_tickdamage * 100)}% урона каждую секунду. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        ]
+        break
+        case 'archer':
+          descs = [
+        `Выстреливает стрелой, нанося ${format(this.getSkillData(id).damage * 100)}% урона. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        `Начинает выстреливать стрелы с невероятной скоростью, нанося ${format(this.getSkillData(id).damage * 100)}% урона каждый выстрел. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        `Сильно натягивает тетиву и выстреливает стрелой, нанося ${format(this.getSkillData(id).damage * 100)}% урона. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        `Используя большой лук и натянув тетиву до предела, выстреливает большой стрелой, нанося ${format((this.getSkillData(id).damage) * 100)}% урона. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        `Разливает на наконечник стрелы яд и выстреливает ей, накладывая отравление на врага на ${format(this.getSkillData(id).fire)} секунд. Каждую секунду ожог будет наносить ${format(this.getSkillData(id).poison_damage * 100)}% урона каждую секунду. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        ]
+        break
+        case 'mage':
+          descs = [
+        `Запускает магический снаряд во врага, нанося ${format(this.getSkillData(id).damage * 100)}% урона. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        `Создаёт ледяной шип и стреляет им, нанося ${format(this.getSkillData(id).water_damage * 100)}% водного урона. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        `Создаёт маленькую сферу молний и запускает её во врага, нанося ${format(this.getSkillData(id).lightning_damage * 100)}% урона молнией. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        `Создаёт огненный шар и запускает его во врага, нанося ${format((this.getSkillData(id).fire_damage) * 100)}% огненного урона. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        `Создаёт иллюзорный вулкан и разрушает его,  нанося ${format(this.getSkillData(id).fire_damage * 100)}% огненного урона и ${format(this.getSkillData(id).earth_damage * 100)}% земляного урона. Перезарядка: ${format(this.getSkillData(id).cooldown)} сек.`,
+        ]
+        break
+      }
       return descs[(id % 10) - 1 + (Math.floor(id / 100) - 1) * 7];
     },
     getStyle(data, id) {
@@ -5671,6 +5914,7 @@ addLayer("main", {
         let max = rarityItems[x](false).length - 1;
         let checkItem = Math.floor(Math.random() * (max - 0) + 0);
         player.main.grid[slots[0]] = rarityItems[x](true, checkItem)
+        doPopup("none",`Вам выпало снаряжение!<hr color='black'><div style='background-color: ${getRariryColor(rarityItems[x](true, checkItem).rarity)}; color:black'>${rarityItems[x](true, checkItem).item_name}</div><hr color='black'>`,"Снаряжение",3,"grey","rgba(183, 183, 183, 1)")
         console.log(rarityItems[x](true, checkItem), x, slots);
         x = 0;
       }

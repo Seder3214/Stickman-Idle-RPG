@@ -12,7 +12,7 @@ const damagePlayer = {
             text() {return `<h3 style='
   color: transparent;
   -webkit-background-clip: text;
-  background-clip: text; background-image: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(251, 8, 13, 1) 100%);'>-${format((player.main.character.skill.skill_name=='Двойной разрез')?getTotalAttack()/2:(getTotalAttack()),2)}</h3>`},
+  background-clip: text; background-image: linear-gradient(90deg, rgba(0, 0, 0, 1) 0%, rgba(251, 8, 13, 1) 100%);'>-${format((player.main.character.skill.skill_name=='Двойной разрез')?getTotalAttack()/2:(getTotalAttack()),2)}</h3>`},
             angle: 0,
             spread: 50,
             offset: 10,
@@ -36,7 +36,7 @@ const damagePlayerCrit = {
             text() {return `<h3 style='
   color: transparent;
   -webkit-background-clip: text;
-  background-clip: text; background-image: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(251, 231, 8, 1) 100%);'>-${format((player.main.character.skill.skill_name=='Двойной разрез')?((getTotalAttack()/2)*getCritStats().crit):(getTotalAttack()*getCritStats().crit),2)}</h3>`},
+  background-clip: text; background-image: linear-gradient(90deg, rgba(0, 0, 0, 1) 0%, rgba(251, 231, 8, 1) 100%);'>-${format((player.main.character.skill.skill_name=='Двойной разрез')?((getTotalAttack()/2)*getCritStats().crit):(getTotalAttack()*getCritStats().crit),2)}</h3>`},
             angle: 0,
             spread: 50,
             offset: 10,
