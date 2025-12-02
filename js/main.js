@@ -779,7 +779,7 @@ function getItemDropChances() {
     let totalGold = player.main.totalGold
     let level = player.main.character.level
     let gain = new Decimal(2).mul(totalGold.root(10).max(1).pow(0.75)).mul(level.max(1).root(1.5).pow(1.5).add(1)).mul(level.gte(10)?level.max(1).root(1.5).pow(0.95).add(1):1)
-    if (level.lte(10)) gain = new Decimal(0)
+    if (level.lte(8)) gain = new Decimal(0)
     return gain
   }
 /*--------------
@@ -5598,8 +5598,8 @@ addLayer("main", {
               "display-text",
               function () {
                 let table = `<div style='background-color: rgba(23, 23, 23, 1); width:90%; height:20%; padding: 0px 5px 15px 5px; border:3px solid gold'><br>Сбросьте всё полученное золото, уровень, карты улучшения и экипировку в инвентаре <br>(не одетую) и взамен получите Монеты Славы.
-                 <br>Полученные Монеты Славы можно потратить на различные улучшения в<br>Дереве Усилений.<br>Для совершения престижа достигните 10 уровня персонажа.<br>Текущее количество <span style='color:orange'>Монет Славы</span> для получения: <b style='color:orange'>${format(getPrestigeCurrencyGain())}</b></div><br>
-                 <button style='width:200px; height:75px; color:white; border:2px solid gold; ${player.main.character.level.gte(10)?("cursor: pointer; background:rgba(91, 91, 91, 0.5);"):("cursor: no-drop; background:rgba(43, 43, 43, 0.5);")}' onClick='getPrestige()'>Совершить престиж</button>`;
+                 <br>Полученные Монеты Славы можно потратить на различные улучшения в<br>Дереве Усилений.<br>Для совершения престижа достигните 8 уровня персонажа.<br>Текущее количество <span style='color:orange'>Монет Славы</span> для получения: <b style='color:orange'>${format(getPrestigeCurrencyGain())}</b></div><br>
+                 <button style='width:200px; height:75px; color:white; border:2px solid gold; ${player.main.character.level.gte(8)?("cursor: pointer; background:rgba(91, 91, 91, 0.5);"):("cursor: no-drop; background:rgba(43, 43, 43, 0.5);")}' onClick='getPrestige()'>Совершить престиж</button>`;
                 return (table);
               },
             ],
