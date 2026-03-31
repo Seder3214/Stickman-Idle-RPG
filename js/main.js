@@ -516,7 +516,7 @@ function getSkills(id) {
             skill_image: "fire_sword",
             damage: 0,
             fire: 3,
-            fire_tickdamage: 5.12,
+            fire_damage: 5.12,
             cooldown: 2.56,
             rarity: 2,
             level: 0,
