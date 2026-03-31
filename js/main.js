@@ -384,13 +384,14 @@ function getTotalAttack() {
   let mainDamage = player.main.character.skill.damage?player.main.character.skill.damage:0
   let scaleAttack = player.main.equipment.primary_weapon.scaled_attack;
   let fireAttack = player.main.character.skill.fire_damage?player.main.character.skill.fire_damage:0
+let fireAddAttackb= player.main.character.skill.fire_tickdamage?
+player.main.character.skill.fire_tickdamage:0
+let poisonAttack = player.main.character.skill.poison_damage?player.main.character.skill.poison_damage:0
   let waterAttack = player.main.character.skill.water_damage?player.main.character.skill.water_damage:0
   let lightningAttack = player.main.character.skill.lightning_damage?player.main.character.skill.lightning_damage:0
   let earthAttack = player.main.character.skill.earth_damage?player.main.character.skill.earth_damage:0
   let totalAttack = slotAttack + (scaleAttack ? scaleAttack : 0);
-  if (player.main.character.skill.fire_tickdamage)
-    totalAttack = totalAttack * player.main.character.skill.fire_tickdamage;
-  totalAttack = totalAttack * (mainDamage+fireAttack+waterAttack+lightningAttack+earthAttack)
+  totalAttack = totalAttack * (mainDamage+fireAttack+waterAttack+lightningAttack+earthAttack+poisonAttack+fireAddAttack)
   return totalAttack;
 }
 function getTotalMonsterAttack() {
