@@ -384,7 +384,7 @@ function getTotalAttack() {
   let mainDamage = player.main.character.skill.damage?player.main.character.skill.damage:0
   let scaleAttack = player.main.equipment.primary_weapon.scaled_attack;
   let fireAttack = player.main.character.skill.fire_damage?player.main.character.skill.fire_damage:0
-let fireAddAttackb= player.main.character.skill.fire_tickdamage?
+let fireAddAttack= player.main.character.skill.fire_tickdamage?
 player.main.character.skill.fire_tickdamage:0
 let poisonAttack = player.main.character.skill.poison_damage?player.main.character.skill.poison_damage:0
   let waterAttack = player.main.character.skill.water_damage?player.main.character.skill.water_damage:0
