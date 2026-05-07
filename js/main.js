@@ -202,7 +202,6 @@ function getScaleBuffs(slot = false, type = "") {
     let exclude = ["fire_attack","water_attack","lightning_attack","earth_attack"];
     let scaled_stats = excludeStats();
     
-    // Добавляем не-числовые свойства которые нужно игнорировать
     let nonStatProperties = ["item_type", "item_subtype", "speed", "name", "id", "rarity"];
     
     let scaleNames = {
@@ -249,7 +248,6 @@ function getScaleBuffs(slot = false, type = "") {
     Object.keys(data).forEach(i => {
       if (scales.includes(i)) {
         Object.keys(data).forEach(j => {
-          // Улучшенная фильтрация - только числовые статы
           if (!data.hasOwnProperty(j)) return;
           if (nonStatProperties.includes(j)) return;
           if (scaled_stats.includes(j)) return;
@@ -322,7 +320,6 @@ function updateSlotStats() {
   let exclude = excludeStats();
   let exclude2 = ["speed", "crit_chance"];
   for (let i in slot) {
-    // Инициализируем базовые статы если их нет
     if (!slot[i]._baseStats) {
       slot[i]._baseStats = {};
       for (let j in slot[i]) {
@@ -339,7 +336,6 @@ function updateSlotStats() {
       slot[i]._baseStats["item_name"] = slot[i]["item_name"];
     }
 
-    // Применяем умножение
     for (let j in slot[i]) {
       if (
         !exclude.includes(j) &&
